@@ -9,7 +9,8 @@ tests, and builds frontend/Worker outputs. No secrets are needed for local demo.
 ## CI/CD
 
 `ci.yml` runs on PRs and pushes to main with read-only repository permission.
-It uses the lockfile, executes checks, and performs a deployment dry run.
+It uses the lockfile, executes unit/type/build and browser smoke checks, and
+performs a deployment dry run.
 `deploy.yml` runs on main pushes or manual dispatch, but only when the repository
 variable `CLOUDFLARE_DEPLOY_ENABLED` is exactly `true`. The deploy job independently
 runs checks before deploying. Until enabled, CI requires no host credentials.

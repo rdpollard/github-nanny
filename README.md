@@ -41,6 +41,18 @@ npm run check    # Type checking, tests, and production build
 npm run preview  # Build and serve using the Worker runtime
 ```
 
+The browser regression check runs against a production preview it starts itself:
+
+```sh
+npx playwright-core install chromium
+npm run build
+npm run test:browser
+```
+
+Alternatively, set `CHROMIUM_PATH` to an existing Chromium executable. CI installs
+its browser and runs this check automatically. It covers demo filters, mobile
+layout, unknown live status, service worker registration, and offline navigation.
+
 ## Project guide
 
 - [Requirements](docs/requirements.md)
