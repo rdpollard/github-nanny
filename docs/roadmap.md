@@ -13,8 +13,12 @@
 ## 2. GitHub connection and live dashboard
 
 - [ ] Register a development GitHub App and confirm owner/install scope.
-- [ ] Implement owner-only authorization, session cookies, callback state/PKCE
-      where supported, token encryption/refresh, revoke/disconnect handling.
+- [x] Implement owner-only GitHub App authorization, secure signed session
+      cookies, browser-bound state and S256 PKCE. Provider identity tokens are
+      used once and discarded; configuration/secrets remain required for use.
+- [x] Add `/settings` for owner sign-in, installation link and browser sign-out.
+- [ ] Verify real GitHub App authorization after registration and deployment.
+- [ ] Add server-side revocation/disconnect handling before broader owner writes.
 - [ ] Add D1 migrations and installation/repository discovery with pagination.
 - [ ] Implement signature-verified webhooks, deduplication and event ordering.
 - [ ] Track all run IDs/attempts; test simultaneous runs of the same workflow.
@@ -47,3 +51,9 @@
 - [ ] Optional Codex chat links only after a reliable association is available.
 
 The foundation alone is not an acceptance test for the complete product.
+
+## Engineering CI handoff
+
+The user watches CI completion. After starting a run, the engineer shares the
+run link and pauses until the user reports it finished. No assistant status
+polling, watchers or scheduled engineering-status checks are installed.

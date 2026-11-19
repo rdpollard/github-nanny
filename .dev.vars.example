@@ -1,0 +1,6 @@
+# Copy to .dev.vars for local use. Empty values intentionally disable sign-in.
+# Keep actual credentials out of this example and out of version control.
+GITHUB_CLIENT_ID=""
+GITHUB_CLIENT_SECRET=""
+GITHUB_APP_SLUG=""
+SESSION_SECRET=""

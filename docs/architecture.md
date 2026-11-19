@@ -14,8 +14,9 @@ flowchart LR
 ```
 
 The current implementation contains the PWA shell, honest unknown-status API,
-and a pure idle-decision function. D1, scheduled handlers, authorization, webhooks,
-and push delivery are planned, not active. See roadmap.md for boundaries.
+a pure idle-decision function, and owner authorization handlers. D1, scheduled
+handlers, webhook ingestion and push delivery are planned, not active. See
+roadmap.md for boundaries and github-connection.md for the sign-in contract.
 
 ## Frontend and framework choice
 
@@ -37,18 +38,30 @@ to workflow run/job events plus installation and repository lifecycle changes
 needed to maintain coverage. Request no content, administration, or Actions
 write access. Validate actual event action types with a sandbox repository.
 
-Use GitHub user authorization for the owner session. An owner allowlist compares
-the returned immutable GitHub user ID to configuration. Installation access is
+GitHub user authorization establishes an eight-hour signed owner session. PKCE,
+random state and a five-minute browser-bound cookie protect the callback. An
+owner allowlist compares the returned immutable GitHub user ID to configuration.
+The identity access token is used once for `/user`, then discarded; no refresh
+token is requested or persisted. Installation access is
 separate: install on all repositories owned by the personal account and add
 organization installations as authorized. Reconcile repository membership using
 all pages. Do not equate a user's accessible repos to one installation's repos.
 Define and display any needed polling coverage for collaborator repositories.
 
-App private keys, webhook secret, OAuth client secret, and Web Push private key
-belong in Worker secrets. Persist user/refresh tokens only with server-side
-encryption and a secret-held key. Installation tokens are short-lived and renewed
-as needed. The read-only public status endpoint returns no credentials, user
-email, subscription endpoints, or private repository details.
+App private keys, webhook secret, OAuth client secret, session signing key and
+Web Push private key belong in Worker secrets. This identity milestone does not
+persist provider tokens. Installation tokens will be short-lived and renewed as
+needed for tracking. The read-only public status endpoint returns no credentials,
+user email, subscription endpoints, or private repository details. The owner ID
+and APP_ORIGIN are non-secret configuration. Query strings are redacted from
+platform logs/traces and invocation logs are disabled to avoid retaining OAuth
+authorization codes. Application logs contain only a fixed failure event name.
+
+Logout clears the browser session cookie; signed cookies already copied to
+another client are not centrally revoked and expire within eight hours. Rotating
+SESSION_SECRET or changing the configured owner invalidates existing sessions.
+Server-side session revocation can be introduced with D1 before more powerful
+owner operations are added. No public mutation endpoints are enabled.
 
 ## Idle decision and races
 

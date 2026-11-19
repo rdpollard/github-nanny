@@ -75,6 +75,7 @@ export function App() {
           <Button variant="ghost" size="icon" aria-label={compact ? 'Expand layout' : 'Compact layout'} aria-pressed={compact} onClick={() => setCompact(!compact)}>{compact ? <ZoomOut /> : <ZoomIn />}</Button>
           <Button variant="ghost" size="icon" aria-label={dark ? 'Use light theme' : 'Use dark theme'} onClick={() => setDark(!dark)}>{dark ? <Sun /> : <Moon />}</Button>
           <Button variant="outline" onClick={() => { void refresh(); }} disabled={loading || demo}><RefreshCw aria-hidden="true" className={loading ? 'motion-safe:animate-spin' : ''} />Refresh</Button>
+          <Button variant="outline" asChild><a href="/settings">Manage</a></Button>
         </div>
       </header>
 

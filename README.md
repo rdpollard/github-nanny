@@ -7,7 +7,7 @@ cancellation, and other terminal conclusions all count as finished.
 
 ## Current status
 
-This is the initial foundation, not a live monitor yet. It includes:
+This is the foundation and owner connection code, not a live monitor yet. It includes:
 
 - A responsive React dashboard adapted from GitHub Workflow Dashboard, including
   repository cards, status badges, filters, compact mode, and light/dark themes.
@@ -17,10 +17,15 @@ This is the initial foundation, not a live monitor yet. It includes:
 - A web manifest, service worker, and offline fallback. No cached status is
   presented as live. Final device installation checks remain on the roadmap.
 - A tested idle-decision function, GitHub Actions CI, and deployment workflow.
+- GitHub App owner sign-in with PKCE and secure, signed session cookies. Sign-in
+  remains disabled until the GitHub App settings and secrets are configured.
+- Owner connection settings at `/settings`; this does not yet authorize live
+  repository monitoring or change the public unknown-status response.
 
-GitHub sign-in, repository discovery, webhook ingestion, D1 persistence, live
-reconciliation, and actual push delivery are the next milestones. The decision
-function is not wired to a live ingestion pipeline yet.
+Repository discovery, webhook ingestion, D1 persistence, live reconciliation,
+and actual push delivery are the next milestones. The decision function is not
+wired to a live ingestion pipeline yet. The hosted deployment is still the
+initial scaffold until this connection change passes CI and is deployed.
 
 ## Local development
 
@@ -37,7 +42,7 @@ API alongside the frontend. Add `/?demo=1` for sample activity; those names and
 counts are not your GitHub data. Local preferences stay on each device.
 
 ```sh
-npm run check    # Type checking, tests, and production build
+npm run check    # Generated types, unit tests, production build and workerd tests
 npm run preview  # Build and serve using the Worker runtime
 ```
 
@@ -59,6 +64,7 @@ layout, unknown live status, service worker registration, and offline navigation
 - [Architecture and idle detection](docs/architecture.md)
 - [Milestones](docs/roadmap.md)
 - [Cloudflare and GitHub setup](docs/setup.md)
+- [GitHub owner connection setup](docs/github-connection.md)
 - [Initial deployment and CI connection status](docs/deployment.md)
 - [Upstream evaluation and attribution](docs/upstream.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
