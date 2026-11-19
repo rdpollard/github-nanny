@@ -15,11 +15,19 @@ This is a UI scaffold. Live GitHub ingestion, global reconciliation and push
 delivery are not connected. The default status remains unknown; sample data is
 available only through the explicit demo query parameter.
 
-The new workers.dev subdomain was registered during the first upload. Cloudflare
-confirmed the deployment is active. Initial endpoint checks encountered a TLS
-provisioning/connection failure, so the public hostname still needs a successful
-health check before availability is established. Do not work around provisioning
-by disabling TLS verification.
+The new workers.dev subdomain was registered during the first upload. Initial
+TLS/connection failures cleared after provisioning. Verified HTTPS 200 responses
+for the homepage, `/api/health`, `/api/status`, the manifest and offline page.
+The health endpoint returns `{"ok":true,"service":"github-nanny"}` and status
+correctly reports an unconnected, unknown monitor. Public rendered-page retrieval
+also confirmed the demo displays three active sample runs across two repositories.
+
+The interactive desktop/mobile, filtering, theme, service worker and offline
+regression checks passed locally against a production build. Those interactive
+checks were not repeated against the public host: the workspace browser could
+not trust the workspace proxy's certificate. Deployment availability was verified
+with HTTPS requests and independent rendered-page retrieval instead. Real-device
+push remains future work.
 
 ## GitHub Actions connection
 
