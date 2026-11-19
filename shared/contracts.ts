@@ -1,5 +1,12 @@
 export type MonitorPhase = 'unknown' | 'busy' | 'idle';
 
+export interface OwnerSession {
+  configured: boolean;
+  authenticated: boolean;
+  owner: { id: string; login: string } | null;
+  installationUrl: string | null;
+}
+
 export interface ActiveRun {
   id: number;
   repository: string;
