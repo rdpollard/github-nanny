@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: #0f172a;
+  --color-primary-foreground: #ffffff;
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--foreground);
+  --color-ring: #0284c7;
+}
+
+:root { --background: #f8fafc; --foreground: #0f172a; --card: #ffffff; --muted-foreground: #64748b; --accent: #e2e8f0; color-scheme: light; }
+.dark { --background: #0b1220; --foreground: #e2e8f0; --card: #111c30; --muted-foreground: #94a3b8; --accent: #263449; color-scheme: dark; }
+body { margin: 0; font-family: system-ui, sans-serif; background: var(--background); color: var(--foreground); }
+* { border-color: color-mix(in srgb, var(--foreground) 14%, transparent); }
+button, a { -webkit-tap-highlight-color: transparent; }
+button { cursor: pointer; }
+button:disabled { cursor: default; }
+button:focus-visible, a:focus-visible { outline: 3px solid #0284c7; outline-offset: 4px; }
