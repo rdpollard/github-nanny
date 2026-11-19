@@ -20,6 +20,34 @@ already in progress. No privileged workflow runs on untrusted PR code.
 
 ## First Cloudflare setup (when ready)
 
+### Wrangler sign-in from a remote workspace
+
+Cloudflare MCP authentication and Wrangler authentication are separate. A
+desktop MCP connection is not required to build or deploy this project.
+
+The pinned Wrangler version supports device authorization, which works without
+forwarding a localhost callback port:
+
+```sh
+npx wrangler login --device --browser=false --scopes account:read user:read workers:write workers_scripts:write d1:write
+npx wrangler whoami
+```
+
+Open the printed Cloudflare verification URL and enter the short-lived device
+code. Do not paste API tokens into chat or source files. Wrangler stores the
+resulting credentials outside the repository. When using a custom
+`XDG_CONFIG_HOME`, use the same value on subsequent Wrangler commands; it changes
+where credentials are stored. This development workspace uses a private
+temporary config directory, which is not a durable CI credential store.
+
+The selected scopes cover account discovery, Workers deployment and the planned
+D1 integration. Wrangler may warn about other omitted product scopes; only add
+them when the project needs those products. Device login adds refresh access
+automatically. Verify the account before deployment, and set
+`CLOUDFLARE_ACCOUNT_ID` explicitly when there is more than one account.
+
+### Automated GitHub deployments
+
 1. Create a Cloudflare account and use Workers Free initially. No domain purchase
    is required; a workers.dev address is sufficient. Check current free limits.
 2. Find the account ID. Create a scoped API token permitting Worker deployment
@@ -33,6 +61,19 @@ already in progress. No privileged workflow runs on untrusted PR code.
 
 The initial scaffold can be deployed for UI review, but will still report
 unknown and cannot send notifications. The GitHub connection is not implemented.
+
+An interactive Wrangler login does not authenticate GitHub Actions. CI requires
+its own account-scoped Cloudflare API token. Prefer an account-owned token with
+Editor access limited to the existing `github-nanny` Worker; creating a new
+Worker requires product-level Admin. Use a separate provisioning token if
+resource creation is needed later. Bound D1 resources do not require additional
+permissions merely to deploy Worker code, but creating/querying databases does.
+Store the token directly in GitHub Actions secret `CLOUDFLARE_API_TOKEN`, never in
+chat or a commit. Do not copy the short-lived local OAuth access token into CI.
+
+Keep `CLOUDFLARE_DEPLOY_ENABLED` disabled until the token is installed and automatic
+public releases from main are intended. The source is currently in PR #1; main
+does not contain the application until that PR is merged.
 
 ## GitHub App setup (milestone 2)
 
@@ -77,4 +118,6 @@ notification provider is required by standards-based Web Push.
 - https://developers.cloudflare.com/workers/platform/pricing/
 - https://developers.cloudflare.com/d1/platform/pricing/
 - https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/
+- https://developers.cloudflare.com/workers/wrangler/commands/general/#use-wrangler-login-without-a-local-callback-server
+- https://developers.cloudflare.com/workers/authorization/workers/
 - https://developer.apple.com/documentation/usernotifications/sending-web-push-notifications-in-web-apps-and-browsers

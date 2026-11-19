@@ -59,15 +59,17 @@ layout, unknown live status, service worker registration, and offline navigation
 - [Architecture and idle detection](docs/architecture.md)
 - [Milestones](docs/roadmap.md)
 - [Cloudflare and GitHub setup](docs/setup.md)
+- [Initial deployment and CI connection status](docs/deployment.md)
 - [Upstream evaluation and attribution](docs/upstream.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 ## Deployment
 
-Cloudflare Workers is the target host. No production resource has been created
-by this scaffold. Deployment is disabled in GitHub Actions until you configure
-the credentials and enable it; see [setup](docs/setup.md). Normal releases then
-deploy from `main` after checks pass.
+Cloudflare Workers hosts the initial scaffold at
+https://github-nanny.github-nanny.workers.dev/. See [deployment status](docs/deployment.md)
+for availability checks and remaining integration work. Deployment is disabled
+in GitHub Actions until you configure the credentials and enable it; see
+[setup](docs/setup.md). Normal releases then deploy from `main` after checks pass.
 
 ## License
 
