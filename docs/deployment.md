@@ -42,6 +42,7 @@ https://github.com/rdpollard/github-nanny/settings/secrets/actions
 - `CLOUDFLARE_API_TOKEN`: a scoped, durable Cloudflare API token authorized to
   deploy the existing `github-nanny` Worker. See setup.md for permissions.
 
-Once these are set, merge PR #1 and enable the repository Actions variable
+PR #1 is merged and main CI passed at `586b2d0172da04dc6228472ed62518861a7f82c4`.
+Once the secrets are set, enable the repository Actions variable
 `CLOUDFLARE_DEPLOY_ENABLED=true` when automatic public releases are desired.
 Local OAuth tokens and MCP credentials must not be copied into CI.

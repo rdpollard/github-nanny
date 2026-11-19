@@ -60,7 +60,9 @@ automatically. Verify the account before deployment, and set
    a paid plan. Building this code does not itself create billable resources.
 
 The initial scaffold can be deployed for UI review, but will still report
-unknown and cannot send notifications. The GitHub connection is not implemented.
+unknown and cannot send notifications. Owner sign-in code is implemented in
+`main`, but the hosted scaffold still needs an update and auth secrets. Live
+repository monitoring is not implemented.
 
 An interactive Wrangler login does not authenticate GitHub Actions. CI requires
 its own account-scoped Cloudflare API token. Prefer an account-owned token with
@@ -72,18 +74,19 @@ Store the token directly in GitHub Actions secret `CLOUDFLARE_API_TOKEN`, never 
 chat or a commit. Do not copy the short-lived local OAuth access token into CI.
 
 Keep `CLOUDFLARE_DEPLOY_ENABLED` disabled until the token is installed and automatic
-public releases from main are intended. The source is currently in PR #1; main
-does not contain the application until that PR is merged.
+public releases from main are intended. The foundation and owner sign-in code
+are merged into `main`; the initial hosted scaffold has not yet been updated.
 
 ## GitHub App setup (milestone 2)
 
-Register an app in your GitHub Developer Settings with Actions: read and
-Metadata: read. Subscribe to relevant Actions, installation, and repository
-events. Configure an HTTPS callback and webhook URL once the handlers exist.
-Install it on all personal-account repositories. Repositories owned by other
-accounts/organizations require their own access and installation decision.
+App `gh-nanny` is registered and its public identifiers are configured. Follow
+[the connection guide](github-connection.md) for callback settings and secret
+installation. Keep webhooks inactive until ingestion is implemented. When that
+handler exists, subscribe to relevant Actions, installation, and repository
+events and install on all personal-account repositories. Repositories owned by
+other accounts/organizations require their own access and installation decision.
 
-The implementation will provide an owner GitHub ID allowlist and owner-only
+The implementation provides an owner GitHub ID allowlist and owner-only
 session. GitHub sign-in does not require a custom password database. Its client
 secret and app private key must remain on the server. Generate a strong webhook
 secret, validate SHA-256 signatures, and store delivery IDs for idempotency.

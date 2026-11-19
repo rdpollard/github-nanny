@@ -5,8 +5,21 @@ webhooks, D1 and notifications are separate upcoming changes. A successful
 sign-in does not imply that live monitoring is connected. Public status remains
 unknown until that pipeline is implemented and synchronized.
 
-The connection code must pass CI and be deployed before these URLs work. The
-currently hosted scaffold does not contain these new handlers yet.
+The owner connection code has passed CI and is merged into `main`. The currently
+hosted scaffold does not contain these handlers yet; deployment and secret
+configuration are still required before sign-in works.
+
+## Registered app
+
+The owner registered `gh-nanny` and supplied these public identifiers:
+
+- App: https://github.com/apps/gh-nanny
+- Owner settings: https://github.com/settings/apps/gh-nanny
+- Client ID: `Iv23liTv0KKizj08FARz`
+
+The Client ID and slug are configured in `wrangler.jsonc`. The registration's
+permissions and callback settings still need verification during activation.
+No client secret or private key has been supplied or committed.
 
 ## Register the GitHub App
 
@@ -47,13 +60,17 @@ Public settings in `wrangler.jsonc`:
 
 - `APP_ORIGIN`: exact HTTPS origin; already set for the hosted Worker.
 - `GITHUB_OWNER_ID`: immutable allowed owner ID; already set for this account.
-- `GITHUB_CLIENT_ID`: add the app's public Client ID.
-- `GITHUB_APP_SLUG`: add the slug from `https://github.com/apps/<slug>`.
+- `GITHUB_CLIENT_ID`: registered app's public Client ID; already set.
+- `GITHUB_APP_SLUG`: registered app slug `gh-nanny`; already set.
 
 Worker secrets (never source, browser storage or VITE_* variables):
 
 - `GITHUB_CLIENT_SECRET`: enter directly into Cloudflare's Worker secret settings
   or the interactive input of `npx wrangler secret put GITHUB_CLIENT_SECRET`.
+  For the dashboard, open https://dash.cloudflare.com/30d2f3da9cdc70736e8a39392f4dc43c/workers/services/view/github-nanny/production/settings
+  and add it under Variables and Secrets with type Secret. Obtain the value
+  using Generate a new client secret in the app's GitHub settings above. Do not
+  send it through chat. This configures the hosted Worker, not GitHub Actions.
 - `SESSION_SECRET`: a freshly generated, unpadded base64url encoding of 32 random
   bytes. The engineer can generate and install this through protected stdin.
   For a local private shell, generate with
