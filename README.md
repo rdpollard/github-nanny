@@ -1,2 +1,64 @@
 # github-nanny
 A PWA that tattles on GitHub when it finishes Actions
+
+GitHub Nanny will watch every run in the connected GitHub repositories and send
+one push notification when the account returns to idle. Success, failure,
+cancellation, and other terminal conclusions all count as finished.
+
+## Current status
+
+This is the initial foundation, not a live monitor yet. It includes:
+
+- A responsive React dashboard adapted from GitHub Workflow Dashboard, including
+  repository cards, status badges, filters, compact mode, and light/dark themes.
+- An explicit sample-data preview at `/?demo=1`.
+- A Cloudflare Worker with `/api/health` and `/api/status` endpoints. Until
+  account integration is implemented, status is always **unknown**, never idle.
+- A web manifest, service worker, and offline fallback. No cached status is
+  presented as live. Final device installation checks remain on the roadmap.
+- A tested idle-decision function, GitHub Actions CI, and deployment workflow.
+
+GitHub sign-in, repository discovery, webhook ingestion, D1 persistence, live
+reconciliation, and actual push delivery are the next milestones. The decision
+function is not wired to a live ingestion pipeline yet.
+
+## Local development
+
+Use Node.js 24 or newer and npm. No GitHub or Cloudflare credentials are needed
+to run the scaffold locally.
+
+```sh
+npm ci
+npm run dev
+```
+
+Open the local URL printed by Vite. The Cloudflare Vite plugin runs the Worker
+API alongside the frontend. Add `/?demo=1` for sample activity; those names and
+counts are not your GitHub data. Local preferences stay on each device.
+
+```sh
+npm run check    # Type checking, tests, and production build
+npm run preview  # Build and serve using the Worker runtime
+```
+
+## Project guide
+
+- [Requirements](docs/requirements.md)
+- [Architecture and idle detection](docs/architecture.md)
+- [Milestones](docs/roadmap.md)
+- [Cloudflare and GitHub setup](docs/setup.md)
+- [Upstream evaluation and attribution](docs/upstream.md)
+- [Third-party notices](THIRD_PARTY_NOTICES.md)
+
+## Deployment
+
+Cloudflare Workers is the target host. No production resource has been created
+by this scaffold. Deployment is disabled in GitHub Actions until you configure
+the credentials and enable it; see [setup](docs/setup.md). Normal releases then
+deploy from `main` after checks pass.
+
+## License
+
+The project retains its GPL v3 license in [LICENSE](LICENSE). Selected upstream
+dashboard components retain their MIT notices in
+[licenses/github-workflow-dashboard.txt](licenses/github-workflow-dashboard.txt).
