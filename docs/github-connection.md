@@ -7,7 +7,8 @@ unknown until that pipeline is implemented and synchronized.
 
 The owner connection code has passed CI, is merged into `main`, and is deployed.
 The session signing key and owner-entered `GITHUB_CLIENT_SECRET` are installed.
-The real sign-in attempt is failing; its cause remains under investigation.
+The real sign-in attempt failed because Workers rejects the fetch redirect mode
+used by the exchange. The fix must pass CI and be deployed before retrying.
 
 ## Registered app
 
@@ -106,7 +107,8 @@ file is current. Do not hand-edit worker-configuration.d.ts.
 3. `/api/auth/callback` validates the canonical origin, signed state, lifetime,
    duplicate parameters and browser cookie before contacting GitHub.
 4. The code exchange posts client credentials and the verifier directly to
-   GitHub. Redirects are rejected and responses are bounded to 32 KiB. The access
+   GitHub. Both provider requests use manual redirect mode; 3xx responses are
+   rejected and responses are bounded to 32 KiB. The access
    token is used only to read the immutable user identity, then discarded.
 5. Only the configured owner receives an eight-hour HttpOnly, Secure,
    SameSite=Lax `__Host-` session cookie. No provider token or private profile
@@ -137,7 +139,7 @@ No scheduled GitHub checks or status watchers are added by this milestone.
 
 ## Sign-in failure diagnostics
 
-The diagnostic change distinguishes these fixed outcomes after deployment:
+The deployed diagnostic change distinguishes these fixed outcomes:
 
 | Outcome | Meaning and next step |
 | --- | --- |
@@ -156,6 +158,12 @@ and exception text are never copied into responses or application logs. Unknown
 outcome query values are ignored; the browser still verifies the session before
 displaying a success notice.
 
+Workers does not support `redirect: 'error'`: it throws before making any
+outbound request. The exchange and identity requests must use `manual` and
+explicitly reject 3xx responses. The workerd tests exercise the entire callback
+with mocked outbound services so Node-only fetch mocks cannot hide this runtime
+incompatibility again.
+
 ## References
 
 - https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app
@@ -163,3 +171,4 @@ displaying a success notice.
 - https://developers.cloudflare.com/workers/examples/signing-requests/
 - https://developers.cloudflare.com/workers/observability/logs/workers-logs/#invocation-logs
 - https://developers.cloudflare.com/workers/testing/miniflare/writing-tests/
+- https://developers.cloudflare.com/workers/runtime-apis/request/#requestinit

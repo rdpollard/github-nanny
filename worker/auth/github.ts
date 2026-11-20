@@ -15,7 +15,8 @@ export class GitHubAuthError extends Error {
 }
 
 async function boundedJson(response: Response, allowErrorResponse = false): Promise<Record<string, unknown>> {
-  if ((!response.ok && !allowErrorResponse) || !response.body) {
+  if ((response.status >= 300 && response.status < 400) ||
+    (!response.ok && !allowErrorResponse) || !response.body) {
     await response.body?.cancel();
     throw new Error('GitHub request failed');
   }
@@ -44,9 +45,10 @@ export async function githubIdentity(input: {
   let stage: 'provider' | 'identity' = 'provider';
   try {
     // Authorization codes and client secrets go in a POST body, never in URLs.
-    // Redirects are rejected so credentials cannot follow an upstream redirect.
+    // Workers supports manual/follow, not redirect: 'error'. Use manual and
+    // reject 3xx responses so credentials never follow an upstream redirect.
     const exchange = await fetcher('https://github.com/login/oauth/access_token', {
-      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(10_000),
+      method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(10_000),
       headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'User-Agent': 'GitHub-Nanny' },
       body: JSON.stringify({
         client_id: input.clientId, client_secret: input.clientSecret, code: input.code,
@@ -68,7 +70,7 @@ export async function githubIdentity(input: {
       token.access_token.length < 1 || token.token_type !== 'bearer') throw new GitHubAuthError('provider');
     stage = 'identity';
     const user = await boundedJson(await fetcher('https://api.github.com/user', {
-      redirect: 'error', signal: AbortSignal.timeout(10_000),
+      redirect: 'manual', signal: AbortSignal.timeout(10_000),
       headers: {
         Accept: 'application/vnd.github+json', Authorization: `Bearer ${token.access_token}`,
         'User-Agent': 'GitHub-Nanny', 'X-GitHub-Api-Version': '2026-03-10',

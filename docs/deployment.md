@@ -1,5 +1,23 @@
 # Deployment status
 
+## Sign-in diagnostics deployment
+
+After CI passed, main commit `58c7190e220e35b352d92e654546f4104a72f4cd`
+was deployed as Cloudflare version `a1f869ff-af08-4173-9324-7e398c5e867a`.
+Existing secrets were preserved. HTTPS checks confirmed configuration is ready,
+missing browser state returns the `state` outcome, and an intentionally invalid
+code with valid browser state returns `provider` without creating a session.
+
+The failure was reproduced in local workerd before any outbound request:
+Workers rejects `fetch` with `redirect: 'error'` during request construction.
+Node's mocked provider tests accepted that option, and the original workerd
+test did not exercise the code-exchange request.
+
+The correction uses `redirect: 'manual'` and explicitly rejects all 3xx
+responses. A full workerd callback test now covers token exchange, identity
+lookup, owner session creation and redirects from both provider endpoints.
+This correction still needs CI and deployment before another real sign-in test.
+
 ## Owner connection deployment
 
 The tested `main` commit `fc1b6624a98af06ca843c330e470c4edc7308a89` was
@@ -22,11 +40,12 @@ the expected Client ID, redirect URI, S256 PKCE and secure state cookie. This
 checks configuration format, not whether GitHub accepts the secret.
 
 The first real attempt exposed a missing registered redirect URI. After the
-owner added it, the app returned a generic sign-in failure. The exact cause is
-still unconfirmed. The next code change distinguishes state, credential, code,
-redirect, exchange and identity failures using fixed outcomes, without exposing
-provider payloads. It is not deployed yet. Public status remains unknown and
-unconnected; live monitoring and push are not implemented.
+owner added it, the app returned a generic sign-in failure. The cause
+was subsequently traced to an unsupported Worker fetch option, as described
+above. The deployed diagnostics distinguish state, credential, code, redirect,
+exchange and identity failures using fixed outcomes, without exposing provider
+payloads. Public status remains unknown and unconnected; live monitoring and
+push are not implemented.
 
 ## Initial deployment
 
