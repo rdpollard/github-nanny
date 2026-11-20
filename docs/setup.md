@@ -63,7 +63,8 @@ The initial scaffold can be deployed for UI review, but will still report
 unknown and cannot send notifications. Owner sign-in code is implemented in
 `main` and deployed with its secrets, and real owner sign-in is verified. The App
 is installed; the deployed access check verified the personal inventory. The
-organization extension and separate `stormbots` installation are still pending.
+organization extension is deployed; the separate `stormbots` installation and
+its authenticated verification are still pending.
 Live monitoring is not implemented.
 
 An interactive Wrangler login does not authenticate GitHub Actions. CI requires

@@ -1,5 +1,20 @@
 # Deployment status
 
+## Organization access deployment
+
+After main CI passed, commit `8645302e4603497454ffbe915d74bef7fb32c539`
+was deployed as Cloudflare version `86447782-4223-4213-bf99-aed77c8ca70d`.
+The `stormbots` immutable ID and required repository are included in the Worker
+configuration. Existing secrets and owner-only authorization were preserved.
+
+HTTPS checks confirmed the organization/required-repository UI is deployed,
+unauthenticated inventory access returns 401 with no-store caching, sign-in
+remains configured, and health is OK. Public monitor status remains unknown.
+An unauthenticated GitHub App metadata lookup returned 404, consistent with the
+existing private registration. The owner must enable other-account installation
+and install/approve the App in `stormbots`, then repeat the authenticated access
+check. Actual organization repository access is not yet verified.
+
 ## Organization access preparation
 
 The owner confirmed real personal repository access for `github-nanny`,
@@ -7,7 +22,7 @@ The owner confirmed real personal repository access for `github-nanny`,
 `stormbots/Tactics-Strategy-Dev-Environments` is absent because the deployed
 inventory only checks the personal installation.
 
-The organization extension is implemented and tested but not deployed. It adds
+The organization extension passed CI and is deployed as recorded above. It adds
 the explicit `stormbots` scope and required-repository check. The GitHub App must
 allow other-account installation and have a separate organization installation
 including the required repository. That organization installation is not yet

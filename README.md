@@ -30,7 +30,7 @@ are the next milestones. The decision function is not
 wired to a live ingestion pipeline yet. The owner connection code is deployed;
 its secrets are installed, and real owner sign-in is verified. Repository access
 checking is deployed and the personal inventory is verified. The organization
-extension still needs CI/deployment and a `stormbots` installation for the
+extension is deployed and needs a `stormbots` installation for the
 required repository. It does not start live monitoring.
 
 ## Local development

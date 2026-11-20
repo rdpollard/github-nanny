@@ -28,6 +28,7 @@
 - [x] Deploy the owner-only repository access check after CI.
 - [x] Verify the real App key and personal repository inventory in the owner's browser.
 - [x] Implement allowlisted organization inventories and required public repository checks.
+- [x] Deploy organization support with `stormbots` configured after CI.
 - [ ] Enable and verify the separate `stormbots` installation and required repository.
 - [ ] Implement signature-verified webhooks, deduplication and event ordering.
 - [ ] Track all run IDs/attempts; test simultaneous runs of the same workflow.

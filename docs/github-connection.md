@@ -3,7 +3,7 @@
 Owner identity authorization and personal-account repository discovery are
 deployed. The owner verified access to `github-nanny`, `locus-tether`, and
 `verify`. Organization support for the required `stormbots` repository is
-implemented but needs CI/deployment and a separate installation. Actions
+deployed and needs the separate organization installation and verification. Actions
 webhooks, D1 and notifications are separate upcoming changes. A successful
 sign-in does not imply that live monitoring is connected. Public status remains
 unknown until that pipeline is implemented and synchronized.
