@@ -17,7 +17,7 @@ The current implementation contains the PWA shell, honest unknown-status API,
 a pure idle-decision function, owner authorization handlers, and an owner-only
 repository inventory check. D1 session storage is deployed and verified. Saved
 public scope and disconnect handlers are deployed and owner-verified. A manual
-owner Actions check is implemented and awaiting CI/deployment; scheduled
+owner Actions check is deployed and awaiting real owner validation; scheduled
 handlers, webhook ingestion and push remain planned. See
 roadmap.md for boundaries and github-connection.md for the sign-in contract.
 

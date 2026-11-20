@@ -166,7 +166,7 @@ must revalidate visibility and access rather than trust this saved snapshot.
 
 ## Manually check Actions
 
-The next change adds **Check Actions now** in settings; it awaits CI/deployment.
+**Check Actions now** is deployed in settings and awaits real owner validation.
 The button requires a saved scope and performs a fresh installation/access check,
 then reads all pages of queued, running, requested, waiting and pending runs in
 those public repositories. It does not limit branches, actors or event types.
