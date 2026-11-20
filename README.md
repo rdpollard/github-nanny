@@ -30,13 +30,16 @@ This is the foundation and owner connection code, not a live monitor yet. It inc
   disconnect action. This is deployed and owner-verified. A saved inventory is
   not proof of current access or idle.
 - An owner-triggered manual Actions check in settings, deployed and owner-verified
-  with an empty result across four public repositories. It covers all five unfinished statuses, complete pagination,
+  with empty and running results across four public repositories. It covers all five unfinished statuses, complete pagination,
   visibility/access validation and scope changes without claiming global idle.
 - Durable internal monitoring state and atomic idle outbox support, deployed
-  and awaiting live persistence verification. Manual checks save sanitized observations; public
+  and verified in hosted D1. Manual checks save sanitized observations; public
   status and notification creation stay disabled until continuous monitoring is ready.
 
-Webhook ingestion, continuous reconciliation, and actual push delivery
+- A signed webhook receiver, delivery deduplication and latest-attempt ordering,
+  implemented and awaiting CI/deployment and dedicated secret setup.
+
+Webhook activation, continuous reconciliation, and actual push delivery
 are the next milestones. The decision function is not
 wired to a live ingestion pipeline yet. The owner connection code is deployed;
 its secrets are installed, and real owner sign-in is verified. Repository access
@@ -83,6 +86,7 @@ layout, unknown live status, service worker registration, and offline navigation
 - [Milestones](docs/roadmap.md)
 - [Cloudflare and GitHub setup](docs/setup.md)
 - [GitHub owner connection setup](docs/github-connection.md)
+- [GitHub webhook receiver and setup](docs/webhooks.md)
 - [Initial deployment and CI connection status](docs/deployment.md)
 - [Upstream evaluation and attribution](docs/upstream.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)

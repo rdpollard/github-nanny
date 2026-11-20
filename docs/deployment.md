@@ -1,5 +1,27 @@
 # Deployment status
 
+## Signed webhook preparation
+
+The owner verified a running `Build Skyview Dev Setup` workflow in the required
+organization repository. A read-only hosted query confirmed phase busy, one
+active run, armed activity, disabled notices and no pending outbox entries.
+The live persistence path is verified.
+
+The signed receiver and migration `0004_webhook_events.sql` are implemented,
+not deployed. No webhook secret has been generated/read/installed and the
+GitHub App's webhooks remain inactive. Setup requires a dedicated shared secret
+entered directly in GitHub and Cloudflare after receiver deployment. Event
+ingestion does not call GitHub, schedule checks or enable notifications. The
+public dashboard remains unknown/unconnected. See webhooks.md for setup.
+
+Local validation passed: `npm run check` (38 unit tests and 37 runtime/D1
+tests), browser smoke, local migration application and Wrangler deployment dry
+run. Coverage includes raw UTF-8 signatures, declared/streamed size bounds,
+concurrent duplicates, old completions and reruns, stale REST contradictions,
+late completion accounting, private scope enforcement, coverage invalidation
+and redelivery, rollback and retention. Hosted migration/deployment and real
+GitHub delivery setup remain after CI.
+
 ## Durable monitoring state deployment
 
 After main CI passed, commit `b42c16b2cdb4e91abe8800a68a6378884dfc323c`
@@ -13,8 +35,8 @@ HTTPS checks confirmed health, configured sign-in, unchanged manual Actions UI,
 401 protection on the Actions endpoint and uncached unknown/unconnected public
 status. A read-only hosted query confirmed monitor and saved-scope revision 3
 match, phase is unknown, notice_enabled is zero and no outbox rows are pending.
-No Actions query was made by these unauthenticated probes. An owner-triggered
-check is still needed to verify the new persistence path on the live host.
+No Actions query was made by these unauthenticated probes. The owner subsequently
+verified the persistence path with a running organization workflow, as recorded above.
 Signed webhook ingestion, continuous monitoring and push remain inactive.
 
 ## Durable monitoring state preparation

@@ -49,7 +49,7 @@ behalf. Use these settings:
 | Setup URL | `https://github-nanny.github-nanny.workers.dev/settings` |
 | Installation access | Public App (Any account), required for the separate organization installation; backend accounts remain allowlisted |
 | Repository permissions | Actions: read-only; Metadata: read-only |
-| Webhooks | Leave inactive until the ingestion handler is implemented |
+| Webhooks | Keep inactive until the signed receiver is deployed and its dedicated secret is configured |
 
 Request no Contents, Workflows write, repository administration, issue or PR
 write permissions. Do not confuse the app's numeric App ID with its Client ID.
@@ -182,6 +182,14 @@ awaits an owner-triggered check to verify persistence on the live host.
 No partial result is shown after an error, lost access or scope change. An empty
 check does not confirm public global idle or send a notification. Private repository
 activity is excluded. Webhooks and scheduled checks remain inactive.
+
+## Signed webhook setup
+
+The receiver is implemented but awaits CI/deployment. Follow
+[webhook setup](webhooks.md) after deployment to configure the dedicated shared
+secret, webhook URL and event subscriptions. Existing sign-in redirect settings,
+read-only permissions and App key remain in use. Receiving signed events alone
+does not enable scheduled monitoring or notifications.
 
 ## Configure the Worker
 

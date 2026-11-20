@@ -39,10 +39,11 @@
 - [x] Implement owner-triggered Actions observation across all five unfinished
       statuses, with pagination, scope/visibility checks and per-run attempts.
 - [x] Deploy and verify an empty manual Actions check across the four real public repositories.
-- [ ] Verify nonempty live results and run links; mocked integration tests cover these now.
-- [ ] Implement signature-verified webhooks, deduplication and event ordering.
-- [ ] Persist all run IDs/attempts and handle webhook ordering; manual scans
-      already test simultaneous runs of the same workflow.
+- [x] Verify a live running organization workflow and persisted busy/activity state.
+- [ ] Verify navigation through a real run link on the owner's device.
+- [x] Implement signature-verified webhooks, deduplication and per-attempt event ordering.
+- [x] Persist scan and event run IDs/attempts; test late completions and reruns.
+- [ ] Deploy receiver, configure secret/subscriptions and verify real deliveries.
 - [ ] Provide active-run API with scope/freshness and access failure handling.
 - [x] Confirm waiting/requested/pending block idle alongside queued/running.
 - [ ] Resolve any coverage fallback outside the configured accounts.
@@ -52,7 +53,8 @@
 - [ ] Add hosted scheduled reconciliation with request/CPU/rate-limit budgets.
 - [x] Persist scan state atomically, stabilize two complete empty scans and reject stale revisions.
 - [x] Implement one atomic outbox entry per idle epoch; production creation remains disabled.
-- [ ] Add signed activity ingestion and activate continuous monitoring/outbox readiness.
+- [x] Add signed activity ingestion and invalidate in-flight scans on fresh activity.
+- [ ] Activate continuous monitoring/outbox readiness after real delivery verification.
 - [ ] Test duplicate/late events, pagination, restarts and loss of repository access.
 
 ## 4. Push and PWA readiness

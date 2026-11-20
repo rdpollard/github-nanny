@@ -23,6 +23,7 @@ export function resetMonitorScope(database: D1DatabaseSession): D1PreparedStatem
       last_complete_at = NULL, runs_json = '[]', last_run_url = NULL, commit_key = NULL, notice_enabled = 0
       WHERE singleton = 1 AND scope_revision != (SELECT revision FROM monitoring_scope WHERE singleton = 1)`),
     database.prepare('DELETE FROM idle_outbox WHERE scope_revision != (SELECT revision FROM monitoring_scope WHERE singleton = 1)'),
+    database.prepare('DELETE FROM workflow_run_state WHERE scope_revision != (SELECT revision FROM monitoring_scope WHERE singleton = 1)'),
   ];
 }
 
@@ -85,7 +86,7 @@ export class MonitorStore {
     if (result.state === token.state) throw new MonitorConflict();
     const link = runs.at(-1)?.url ?? token.lastRunUrl;
     await this.commit(token, result.state, runsJson, link,
-      token.noticeEnabled ? result.idleNotice?.epoch ?? null : null);
+      token.noticeEnabled ? result.idleNotice?.epoch ?? null : null, Date.parse(report.startedAt));
   }
 
   async fail(token: ScanToken): Promise<void> {
@@ -95,7 +96,7 @@ export class MonitorStore {
     await this.commit(token, { ...token.state, phase: 'unknown', emptySince: null }, '[]', token.lastRunUrl, null);
   }
 
-  private async commit(token: ScanToken, state: StabilizedMonitorState, runs: string, link: string | null, notice: number | null) {
+  private async commit(token: ScanToken, state: StabilizedMonitorState, runs: string, link: string | null, notice: number | null, scanStartedAt: number | null = null) {
     const database = this.database.withSession('first-primary');
     const marker = crypto.randomUUID();
     const result = await database.batch([
@@ -103,15 +104,43 @@ export class MonitorStore {
         empty_since = ?, last_complete_at = ?, runs_json = ?, last_run_url = ?, commit_key = ?
         WHERE singleton = 1 AND revision = ? AND scope_revision = ? AND EXISTS
         (SELECT 1 FROM monitoring_scope WHERE singleton = 1 AND revision = ? AND config_key = ? AND scope_json IS NOT NULL)
+        AND NOT EXISTS (SELECT 1 FROM json_each(?) r JOIN workflow_run_state w
+          ON w.scope_revision = ? AND w.run_id = json_extract(r.value, '$.id')
+          WHERE w.attempt > json_extract(r.value, '$.attempt') OR
+            (w.attempt = json_extract(r.value, '$.attempt') AND w.terminal = 1))
         RETURNING revision`)
         .bind(state.phase, Number(state.activityObserved), state.idleEpoch, state.emptySince, state.lastCompleteAt,
-          runs, link, marker, token.state.revision, token.scope.revision, token.scope.revision, token.key),
+          runs, link, marker, token.state.revision, token.scope.revision, token.scope.revision, token.key, runs, token.scope.revision),
       database.prepare(`INSERT INTO idle_outbox (epoch, scope_revision, created_at, run_url)
         SELECT idle_epoch, scope_revision, last_complete_at, last_run_url FROM monitor_state
         WHERE singleton = 1 AND commit_key = ? AND notice_enabled = 1 AND phase = 'idle' AND idle_epoch = ?`)
         .bind(marker, notice),
       database.prepare(`DELETE FROM idle_outbox WHERE EXISTS
         (SELECT 1 FROM monitor_state WHERE singleton = 1 AND commit_key = ? AND phase = 'busy')`).bind(marker),
+      // Remember which attempts a complete REST observation already covered.
+      // This is NOT an inferred terminal status: only signed completion events
+      // make terminal absorbing. Late known completions must not arm twice.
+      database.prepare(`INSERT INTO workflow_run_state
+        (scope_revision, repository_id, run_id, attempt, observed_at, commit_key)
+        SELECT m.scope_revision, json_extract(p.value, '$.id'), json_extract(r.value, '$.id'),
+          json_extract(r.value, '$.attempt'), m.last_complete_at, m.commit_key
+        FROM monitor_state m JOIN monitoring_scope s ON s.singleton = m.singleton,
+          json_each(m.runs_json) r, json_each(s.scope_json, '$.repositories') p
+        WHERE m.commit_key = ? AND json_extract(p.value, '$.name') = json_extract(r.value, '$.repository')
+        ON CONFLICT(scope_revision, run_id) DO UPDATE SET
+          repository_id = excluded.repository_id, attempt = excluded.attempt, observed_at = excluded.observed_at,
+          status = CASE WHEN excluded.attempt > workflow_run_state.attempt THEN NULL ELSE workflow_run_state.status END,
+          updated_at = CASE WHEN excluded.attempt > workflow_run_state.attempt THEN 0 ELSE workflow_run_state.updated_at END,
+          terminal = CASE WHEN excluded.attempt > workflow_run_state.attempt THEN 0 ELSE workflow_run_state.terminal END,
+          settled_at = CASE WHEN excluded.attempt > workflow_run_state.attempt THEN NULL ELSE workflow_run_state.settled_at END,
+          commit_key = excluded.commit_key
+        WHERE excluded.repository_id = workflow_run_state.repository_id AND excluded.attempt >= workflow_run_state.attempt`)
+        .bind(scanStartedAt === null ? '' : marker),
+      database.prepare(`UPDATE workflow_run_state SET settled_at =
+        (SELECT last_complete_at FROM monitor_state WHERE singleton = 1)
+        WHERE scope_revision = ? AND max(updated_at, coalesce(observed_at, 0)) <= ? AND EXISTS
+        (SELECT 1 FROM monitor_state WHERE singleton = 1 AND commit_key = ? AND phase = 'idle')`)
+        .bind(token.scope.revision, scanStartedAt, scanStartedAt === null ? '' : marker),
     ]);
     if (result.some(statement => !statement.success)) throw new Error('Monitor storage unavailable');
     if (result[0].results.length !== 1) throw new MonitorConflict();
