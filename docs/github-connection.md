@@ -8,8 +8,9 @@ unknown until that pipeline is implemented and synchronized.
 The owner connection code has passed CI, is merged into `main`, and is deployed.
 The session signing key and owner-entered `GITHUB_CLIENT_SECRET` are installed.
 The real sign-in attempt failed because Workers rejects the fetch redirect mode
-used by the exchange. The fix passed CI and is deployed; the live exchange now
-reaches GitHub. Real owner sign-in must still be verified in the browser.
+used by the exchange. The fix passed CI and is deployed. The owner completed
+real browser authorization and confirmed **Signed in as rdpollard**. App
+installation and live repository discovery are still pending.
 
 ## Registered app
 
@@ -134,8 +135,9 @@ expiry and CSRF protection. A workerd integration test verifies that the built
 Worker signs/verifies cookies in its actual runtime. Browser smoke checks cover
 the unconfigured owner screen and keep the public dashboard available.
 
-The App is registered and the approved code and secrets are deployed. The real
-authorization flow must still succeed, including denial of another account.
+The App is registered and the approved code and secrets are deployed. Real
+owner authorization succeeded. Denial of another account is covered in tests
+but has not been verified with another real GitHub account.
 No scheduled GitHub checks or status watchers are added by this milestone.
 
 ## Sign-in failure diagnostics

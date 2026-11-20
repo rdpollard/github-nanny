@@ -20,7 +20,7 @@
 - [x] Add `/settings` for owner sign-in, installation link and browser sign-out.
 - [x] Add fixed sign-in failure outcomes and credential-redaction regression tests.
 - [x] Exercise code exchange, identity lookup and redirect rejection in workerd.
-- [ ] Verify real GitHub App authorization after registration and deployment.
+- [x] Verify real owner GitHub App authorization after registration and deployment.
 - [ ] Add server-side revocation/disconnect handling before broader owner writes.
 - [ ] Add D1 migrations and installation/repository discovery with pagination.
 - [ ] Implement signature-verified webhooks, deduplication and event ordering.
