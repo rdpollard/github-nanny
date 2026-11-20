@@ -18,7 +18,7 @@ a pure idle-decision function, owner authorization handlers, and an owner-only
 repository inventory check. D1 session storage is deployed and verified. Saved
 public scope and disconnect handlers are deployed and owner-verified. A manual
 owner Actions check is deployed and owner-verified for an empty scan. Durable
-monitor state and atomic outbox support are implemented, awaiting CI/deployment;
+monitor state and atomic outbox support are deployed, awaiting live persistence verification;
 scheduled handlers, webhook ingestion and push remain planned. See
 roadmap.md for boundaries and github-connection.md for the sign-in contract.
 

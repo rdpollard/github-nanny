@@ -177,7 +177,8 @@ are needed: Actions read and Metadata read are already configured.
 No Actions request runs automatically on page load, scope save or reload. The
 result is an owner-only snapshot with a check time, not a public monitoring feed.
 The durable-state change persists sanitized observations and internal quiet
-period state but leaves notification creation disabled. It awaits CI/deployment.
+period state but leaves notification creation disabled. It is deployed and
+awaits an owner-triggered check to verify persistence on the live host.
 No partial result is shown after an error, lost access or scope change. An empty
 check does not confirm public global idle or send a notification. Private repository
 activity is excluded. Webhooks and scheduled checks remain inactive.

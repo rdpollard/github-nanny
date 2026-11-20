@@ -1,13 +1,30 @@
 # Deployment status
 
+## Durable monitoring state deployment
+
+After main CI passed, commit `b42c16b2cdb4e91abe8800a68a6378884dfc323c`
+was deployed manually as Cloudflare version
+`460beab8-4dff-4fbc-b6ba-3ba2a7deb57d`. Migration
+`0003_monitor_state.sql` applied successfully to the hosted database before
+Worker upload. Existing scope/session data and secrets were preserved.
+Automatic deployment remains disabled; its workflow was skipped.
+
+HTTPS checks confirmed health, configured sign-in, unchanged manual Actions UI,
+401 protection on the Actions endpoint and uncached unknown/unconnected public
+status. A read-only hosted query confirmed monitor and saved-scope revision 3
+match, phase is unknown, notice_enabled is zero and no outbox rows are pending.
+No Actions query was made by these unauthenticated probes. An owner-triggered
+check is still needed to verify the new persistence path on the live host.
+Signed webhook ingestion, continuous monitoring and push remain inactive.
+
 ## Durable monitoring state preparation
 
 The owner verified a live empty Actions check across all four public repositories
 and confirmed requested, waiting and pending runs block idle alongside queued
 and running. Live nonempty results are not yet verified.
 
-Migration `0003_monitor_state.sql` and the durable-state change are implemented,
-not deployed. Manual checks will persist sanitized current-run observations and
+Migration `0003_monitor_state.sql` and the durable-state change are deployed as
+recorded above. Manual checks persist sanitized current-run observations and
 internal stabilization state. Scope save/disconnect atomically clear that state
 and pending notices. Notification creation defaults off with no activation API;
 public status stays unknown/unconnected. Continuous monitoring, signed events,
@@ -19,7 +36,7 @@ Wrangler deployment dry run. New cases cover concurrent idle commits, quiet
 interval timing and expiry, outage recovery without losing an epoch, atomic
 rollback, scope cleanup, field sanitization, disabled production notices and
 scope changes made by the previous Worker during migration/upload. Hosted
-migration/deployment remain pending CI.
+migration/deployment subsequently passed as recorded above.
 
 ## Manual Actions check deployment
 

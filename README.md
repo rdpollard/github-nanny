@@ -32,8 +32,8 @@ This is the foundation and owner connection code, not a live monitor yet. It inc
 - An owner-triggered manual Actions check in settings, deployed and owner-verified
   with an empty result across four public repositories. It covers all five unfinished statuses, complete pagination,
   visibility/access validation and scope changes without claiming global idle.
-- Durable internal monitoring state and atomic idle outbox support, implemented
-  and awaiting CI/deployment. Manual checks save sanitized observations; public
+- Durable internal monitoring state and atomic idle outbox support, deployed
+  and awaiting live persistence verification. Manual checks save sanitized observations; public
   status and notification creation stay disabled until continuous monitoring is ready.
 
 Webhook ingestion, continuous reconciliation, and actual push delivery
