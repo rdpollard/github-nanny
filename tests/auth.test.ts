@@ -99,7 +99,8 @@ test('valid owner callback creates a session without exposing provider credentia
   assert.equal(body.client_secret, env.GITHUB_CLIENT_SECRET);
   assert.equal(body.code, 'test-code');
   assert.match(body.code_verifier, /^[A-Za-z0-9_-]{43}$/);
-  assert.equal(tokenRequest.init?.redirect, 'error');
+  assert.equal(tokenRequest.init?.redirect, 'manual');
+  assert.equal(upstream.requests[1].init?.redirect, 'manual');
   assert.equal(new Headers(upstream.requests[1].init?.headers).get('Authorization'), 'Bearer provider-token-test-only');
   const request = new Request(`${origin}/api/auth/session`, { headers: { Cookie: sessionCookie } });
   const session = await route(request);
