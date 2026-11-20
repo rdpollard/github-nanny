@@ -73,6 +73,21 @@ const path = require('node:path');
       repositories: [{ id: 1, name: 'rdpollard/public-demo', url: 'https://github.com/rdpollard/public-demo' }],
     };
     const organizationAccount = { id: '5925283', login: 'stormbots', kind: 'Organization', requiresAll: false, requiredRepositories: ['Tactics-Strategy-Dev-Environments'] };
+    let scopeSaves = 0;
+    let scopeDeletes = 0;
+    let savedScope = { revision: 0, prepared: false, policy: 'public-only', verifiedAt: null, repositories: [] };
+    await page.route(`${origin}/api/admin/monitoring`, route => {
+      const method = route.request().method();
+      if (method === 'POST') {
+        if (++scopeSaves === 2) return route.fulfill({ status: 409, json: { reason: 'conflict' } });
+        savedScope = { revision: 1, prepared: true, policy: 'public-only', verifiedAt: personalInventory.checkedAt,
+          repositories: personalInventory.repositories.map(repo => ({ ...repo, accountId: '27035363', installationId: 7 })) };
+      } else if (method === 'DELETE') {
+        scopeDeletes++;
+        savedScope = { revision: 2, prepared: false, policy: 'public-only', verifiedAt: null, repositories: [] };
+      } else assert.equal(method, 'GET');
+      return route.fulfill({ json: savedScope });
+    });
     await page.route(`${origin}/api/auth/session`, route => route.fulfill({ json: {
       configured: true, authenticated: true, owner: { id: '27035363', login: 'rdpollard' },
       installationUrl: 'https://github.com/apps/github-nanny-test/installations/new',
@@ -96,6 +111,8 @@ const path = require('node:path');
     });
     await page.goto(`${origin}/settings`);
     await page.getByRole('button', { name: 'Check repository access', exact: true }).waitFor();
+    await page.getByText('No public monitoring scope is saved.', { exact: true }).waitFor();
+    assert.equal(scopeSaves, 0);
     assert.equal(discoveryRequests, 0);
     await page.getByRole('button', { name: 'Check repository access', exact: true }).click();
     await page.getByText('Repository access verified for rdpollard: 2 repositories (1 public, 1 private).', { exact: true }).waitFor();
@@ -113,6 +130,19 @@ const path = require('node:path');
     await page.getByRole('link', { name: 'stormbots/Tactics-Strategy-Dev-Environments', exact: true }).waitFor();
     assert.equal(await page.getByRole('alert').count(), 0);
     assert.equal(discoveryRequests, 3);
+    assert.equal(scopeSaves, 0); // An access check alone never changes the scope.
+    await page.getByRole('button', { name: 'Save public scope', exact: true }).click();
+    await page.getByText('Public scope saved: 1 repositories. Actions monitoring is not active yet.', { exact: true }).waitFor();
+    assert.equal(await page.getByRole('list', { name: 'Saved public repositories' }).getByRole('link').count(), 1);
+    await page.getByRole('button', { name: 'Save public scope', exact: true }).click();
+    await page.getByRole('alert').filter({ hasText: 'The saved scope changed in another request.' }).waitFor();
+    assert.equal(await page.getByRole('list', { name: 'Saved public repositories' }).count(), 0);
+    await page.getByRole('button', { name: 'Reload saved scope', exact: true }).click();
+    await page.getByRole('list', { name: 'Saved public repositories' }).waitFor();
+    await page.getByRole('button', { name: 'Disconnect saved scope', exact: true }).click();
+    await page.getByText('No public monitoring scope is saved.', { exact: true }).waitFor();
+    assert.equal(scopeDeletes, 1);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     let logoutAllRequests = 0;
     await page.route(`${origin}/api/auth/logout-all`, route => {
       logoutAllRequests++;
@@ -127,6 +157,7 @@ const path = require('node:path');
     await page.unroute(`${origin}/api/auth/logout-all`);
     await page.unroute(`${origin}/api/auth/session`);
     await page.unroute(`${origin}/api/admin/repositories`);
+    await page.unroute(`${origin}/api/admin/monitoring`);
     await page.getByRole('link', { name: 'Back to dashboard', exact: true }).click();
     await page.getByRole('heading', { name: 'Status unavailable' }).waitFor();
     await page.evaluate(() => navigator.serviceWorker.ready);

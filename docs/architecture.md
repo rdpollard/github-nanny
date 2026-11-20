@@ -15,8 +15,9 @@ flowchart LR
 
 The current implementation contains the PWA shell, honest unknown-status API,
 a pure idle-decision function, owner authorization handlers, and an owner-only
-repository inventory check. D1 session storage is implemented and awaiting
-deployment; scheduled handlers, webhook ingestion and push remain planned. See
+repository inventory check. D1 session storage is deployed and verified. Saved
+public scope and disconnect handlers are implemented, awaiting CI/deployment;
+scheduled handlers, webhook ingestion and push remain planned. See
 roadmap.md for boundaries and github-connection.md for the sign-in contract.
 
 ## Frontend and framework choice
@@ -72,8 +73,7 @@ requests. Both operations require POST and an exact matching browser Origin.
 Missing storage, failed reads/writes and legacy cookies without a stored session
 fail closed. After deployment, existing stateless sessions must sign in again.
 Rotating SESSION_SECRET or changing owner ID also invalidates existing cookies.
-Monitoring disconnect remains a later operation. No public mutation endpoints
-are enabled. The
+No public mutation endpoints are enabled. The
 repository inventory is a read operation and does not persist configuration or
 start monitoring.
 
@@ -84,7 +84,45 @@ public repositories: github-nanny, locus-tether, verify, and the required
 stormbots/Tactics-Strategy-Dev-Environments repository. The 17 private
 repositories are access-inventory metadata only and must not receive Actions
 queries or contribute to busy/idle, the activity latch, or notifications. The
-future persisted monitoring scope must enforce this before ingestion and scans.
+persisted monitoring scope contains only public records. Future ingestion and
+scans must revalidate visibility and access before using those records; an old
+saved inventory cannot establish current scope, activity, or idle.
+
+## Saved public scope and disconnect
+
+The owner-only `/api/admin/monitoring` endpoint reads the saved scope with GET,
+verifies fresh access and saves with POST, and clears it with DELETE. Mutations
+require the exact canonical Origin and all methods reject cross-site Fetch
+Metadata. An authenticated settings visit reads D1 once; it does not call GitHub.
+The existing access-check button remains read-only and never saves automatically.
+Caller bodies and query parameters cannot supply repositories or coverage.
+
+A save takes the current stored revision, then verifies every configured account
+with the existing bounded discovery pipeline. Every account and required public
+repository must succeed. The single D1 scope document stores installation/account
+identifiers and explicit public repository records only; private names, private
+counts and installation tokens are not persisted. All accounts in a verification
+share one timestamp. Empty or over-200-public-repository scopes are rejected
+without saving a subset. This bound keeps the document below D1's row limit.
+
+One `UPDATE ... WHERE revision = ? RETURNING revision` atomically replaces the
+document and increments its revision. Concurrent saves cannot both win the same
+revision. Disconnect clears the document and increments the revision, even if
+already disconnected, so an older in-flight save cannot silently restore it.
+It does not uninstall the App or revoke owner sessions. Sign-out does not clear
+the saved scope. D1 reads begin on the primary, and storage failures fail closed.
+
+The saved record includes a configuration key derived from the App identity,
+owner, organization IDs and required repository names, and public-only policy.
+If that server configuration changes, old scope records are treated as
+unprepared and hidden until fresh verification. A failed save preserves the
+previous document; it makes no claim of current access. The UI clears its old
+scope on a failed operation and offers an explicit reload.
+
+This is preparation only: public status remains unknown/unconnected, with no
+Actions requests, webhook handler, scheduled scan or notification. Future scan
+results and notification work must also be fenced by this scope revision;
+disconnect must additionally invalidate/clear that future state before launch.
 
 ## Owner repository inventory
 
@@ -166,8 +204,8 @@ once display on all devices.
 
 | Record | Purpose |
 | --- | --- |
-| Account/installations | Allowed owner ID, installation IDs, coverage health |
-| Repositories | Scope, visibility, access state, successful discovery time |
+| Saved public scope (implemented) | Atomic account/installation and public repository document, configuration key, revision, verification time |
+| Repository monitoring state | Revalidated visibility, current access health and successful scan time |
 | Runs/attempts | Every unfinished run, status, run URL, event ordering metadata |
 | Webhook deliveries | Idempotency and processing result with bounded retention |
 | Monitor state | Phase, revision, activity latch, epoch, last complete scan |

@@ -19,15 +19,18 @@ This is the foundation and owner connection code, not a live monitor yet. It inc
 - A tested idle-decision function, GitHub Actions CI, and deployment workflow.
 - GitHub App owner sign-in with PKCE and secure, signed session cookies. Sign-in
   remains disabled until the GitHub App settings and secrets are configured.
-- Persistent D1 owner sessions and all-device sign-out are implemented and
-  awaiting CI/deployment. Existing sessions will need one fresh sign-in.
+- Persistent D1 owner sessions and all-device sign-out are deployed and verified
+  in the owner's normal and private browser sessions.
 - Owner connection settings at `/settings`; this does not yet authorize live
   repository monitoring or change the public unknown-status response.
 - An owner-only repository access check with GitHub App authentication,
   pagination, explicit organization scopes and required-repository gaps.
   It runs only when the owner clicks the check button.
+- An owner-only saved public scope, fresh verification before saving, and a
+  disconnect action. This change awaits CI/deployment and does not start Actions
+  monitoring. A saved inventory is not proof of current access or idle.
 
-Webhook ingestion, D1 persistence, live reconciliation, and actual push delivery
+Webhook ingestion, run-state persistence, live reconciliation, and actual push delivery
 are the next milestones. The decision function is not
 wired to a live ingestion pipeline yet. The owner connection code is deployed;
 its secrets are installed, and real owner sign-in is verified. Repository access

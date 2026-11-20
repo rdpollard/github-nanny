@@ -5,7 +5,7 @@ deployed. The owner verified access to `github-nanny`, `locus-tether`, and
 `verify`. Organization support for the required `stormbots` repository is
 deployed and verified. The owner confirmed 21 accessible repositories: four
 public and 17 private, and selected only the four public repos for monitoring.
-D1 owner sessions are implemented but awaiting deployment; Actions webhooks and
+D1 owner sessions and all-device sign-out are deployed and browser-verified; Actions webhooks and
 notifications remain upcoming changes. A successful
 sign-in does not imply that live monitoring is connected. Public status remains
 unknown until that pipeline is implemented and synchronized.
@@ -28,7 +28,7 @@ The owner registered `gh-nanny` and supplied these public identifiers:
 - Client ID: `Iv23liTv0KKizj08FARz`
 
 The Client ID and slug are configured in `wrangler.jsonc`. The personal-account
-permissions and callback work. Organization access still needs verification.
+permissions and callback work. Both configured installations are verified.
 No client secret or private key has been sent through chat or committed.
 
 ## Register the GitHub App
@@ -92,8 +92,8 @@ OAuth client secret already installed:
 The owner reports saving `GITHUB_APP_PRIVATE_KEY`; Wrangler confirms that secret
 name is present without reading its value. The new backend accepts GitHub's
 PKCS#1 PEM keys and unencrypted PKCS#8, with signing tested in workerd. The real
-key and personal installation are now verified. There is still no
-database, webhook ingestion or scheduler.
+key and personal installation are now verified. D1 session storage is deployed;
+webhook ingestion and scheduling are not active.
 
 ## Check repository access after deployment
 
@@ -143,6 +143,26 @@ The UI makes no periodic requests to this endpoint. No Actions run or job status
 is queried, and no monitor configuration is written. A failed retry clears the
 old inventory. Public status stays unknown/unconnected until the actual
 monitoring pipeline is implemented. Webhooks must remain inactive.
+
+## Save or disconnect the public scope
+
+The saved-scope change is implemented but not deployed yet. After deployment,
+the owner can use **Save public scope** to run a new access verification and
+persist only public repositories from all configured accounts. This is separate
+from **Check repository access**, which still only displays a report. No supplied
+browser inventory is trusted. Incomplete, empty or over-200-public-repository
+scopes are rejected without changing the saved record.
+
+**Reload saved scope** reads D1 without contacting GitHub. **Disconnect saved
+scope** clears it, leaves identity sign-in and the App installation intact, and
+invalidates older in-flight saves. If two devices save concurrently, only one
+can replace a particular revision; reload after a conflict. Changes to server
+coverage configuration require fresh verification before a saved scope is usable.
+
+Private names/counts and tokens are not stored in the scope document. Saving
+does not start Actions queries, webhooks, scheduled monitoring or push. Public
+status remains unknown until the live pipeline is implemented. Future monitoring
+must revalidate visibility and access rather than trust this saved snapshot.
 
 ## Configure the Worker
 
@@ -220,7 +240,8 @@ this deployment. Rotating SESSION_SECRET also invalidates existing cookies.
 
 Only session hashes and owner/login/lifetime metadata are stored. Raw session
 IDs, cookies and GitHub tokens are not stored in the database. Expired records
-are removed during successful sign-in. Monitoring disconnect remains a later step.
+are removed during successful sign-in. Saved-scope disconnect is separate from
+session sign-out and does not delete identity sessions.
 
 ## Validation and activation
 
@@ -233,8 +254,8 @@ the unconfigured owner screen and keep the public dashboard available.
 The App is registered and the approved code and secrets are deployed. Real
 owner authorization succeeded. Denial of another account is covered in tests
 but has not been verified with another real GitHub account. Persistent sessions
-passed workerd/D1 tests; real reauthentication and logout still need verification
-after CI and deployment.
+passed workerd/D1 tests; the owner verified reauthentication and all-device
+logout across normal and private browser sessions after deployment.
 No scheduled GitHub checks or status watchers are added by this milestone.
 
 ## Sign-in failure diagnostics

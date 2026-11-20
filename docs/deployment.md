@@ -1,5 +1,24 @@
 # Deployment status
 
+## Saved public scope preparation
+
+The owner confirmed persistent sign-in and all-device sign-out work in normal
+and private browser windows. That live verification is complete.
+
+The next change adds migration `0002_monitoring_scope.sql` and owner-only
+save/reload/disconnect controls. Saves require fresh complete verification and
+persist only public records. Revision checks prevent a slow save from restoring
+a disconnected scope. This code and migration are not deployed yet; the live
+Worker remains the persistent-session version below. Actions monitoring,
+scheduled checks, webhook ingestion and push remain inactive.
+
+Local validation passed: generated types, TypeScript, 35 unit tests, the existing
+seven workerd/D1 tests and five new scope integration tests, including real SQL
+revision races, private-repository exclusion, partial verification and malformed
+stored data. Browser smoke passed with system Chromium, including save conflict,
+reload, disconnect, mobile layout and sign-out. The new migration applied locally;
+its remote application is deferred until CI passes and deployment resumes.
+
 ## Persistent session deployment
 
 PR #8 and main CI passed. Main commit
@@ -14,9 +33,9 @@ HTTPS checks confirmed health, configured sign-in, the all-device sign-out UI,
 GET on all-device sign-out. API responses remain uncached. Public monitoring
 status is still unknown and unconnected; no Actions monitoring has started.
 
-Existing stateless sessions require a fresh browser sign-in. Real owner
-reauthentication and revocation across two browser sessions remain to be verified
-by the owner; local workerd/D1 tests already cover both revocation paths.
+Existing stateless sessions require a fresh browser sign-in. The owner verified
+reauthentication and all-device revocation across normal and private browser
+sessions. Local workerd/D1 tests also cover both revocation paths.
 
 ## Persistent session preparation
 
