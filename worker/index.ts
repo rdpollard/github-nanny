@@ -1,12 +1,15 @@
 import { unconnectedSnapshot } from '../shared/contracts.ts';
 import type { Bindings } from './auth/config.ts';
 import { authRoute } from './auth/routes.ts';
+import { webhookRoute } from './github/webhook.ts';
 
-// Live ingestion and authenticated setup are the next milestone. Never report
-// idle just because the scaffold does not have a GitHub connection yet.
+// Public status awaits continuous reconciliation and activation. Owner checks
+// and signed callbacks alone do not establish current global idle.
 export default {
   async fetch(request: Request, env: Bindings = {}): Promise<Response> {
     const url = new URL(request.url);
+    const webhook = await webhookRoute(request, env);
+    if (webhook) return webhook;
     const auth = await authRoute(request, env);
     if (auth) return auth;
     const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };

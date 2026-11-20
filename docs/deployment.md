@@ -1,13 +1,52 @@
 # Deployment status
 
+## Signed webhook preparation
+
+The owner verified a running `Build Skyview Dev Setup` workflow in the required
+organization repository. A read-only hosted query confirmed phase busy, one
+active run, armed activity, disabled notices and no pending outbox entries.
+The live persistence path is verified.
+
+The signed receiver and migration `0004_webhook_events.sql` are implemented,
+not deployed. No webhook secret has been generated/read/installed and the
+GitHub App's webhooks remain inactive. Setup requires a dedicated shared secret
+entered directly in GitHub and Cloudflare after receiver deployment. Event
+ingestion does not call GitHub, schedule checks or enable notifications. The
+public dashboard remains unknown/unconnected. See webhooks.md for setup.
+
+Local validation passed: `npm run check` (38 unit tests and 37 runtime/D1
+tests), browser smoke, local migration application and Wrangler deployment dry
+run. Coverage includes raw UTF-8 signatures, declared/streamed size bounds,
+concurrent duplicates, old completions and reruns, stale REST contradictions,
+late completion accounting, private scope enforcement, coverage invalidation
+and redelivery, rollback and retention. Hosted migration/deployment and real
+GitHub delivery setup remain after CI.
+
+## Durable monitoring state deployment
+
+After main CI passed, commit `b42c16b2cdb4e91abe8800a68a6378884dfc323c`
+was deployed manually as Cloudflare version
+`460beab8-4dff-4fbc-b6ba-3ba2a7deb57d`. Migration
+`0003_monitor_state.sql` applied successfully to the hosted database before
+Worker upload. Existing scope/session data and secrets were preserved.
+Automatic deployment remains disabled; its workflow was skipped.
+
+HTTPS checks confirmed health, configured sign-in, unchanged manual Actions UI,
+401 protection on the Actions endpoint and uncached unknown/unconnected public
+status. A read-only hosted query confirmed monitor and saved-scope revision 3
+match, phase is unknown, notice_enabled is zero and no outbox rows are pending.
+No Actions query was made by these unauthenticated probes. The owner subsequently
+verified the persistence path with a running organization workflow, as recorded above.
+Signed webhook ingestion, continuous monitoring and push remain inactive.
+
 ## Durable monitoring state preparation
 
 The owner verified a live empty Actions check across all four public repositories
 and confirmed requested, waiting and pending runs block idle alongside queued
 and running. Live nonempty results are not yet verified.
 
-Migration `0003_monitor_state.sql` and the durable-state change are implemented,
-not deployed. Manual checks will persist sanitized current-run observations and
+Migration `0003_monitor_state.sql` and the durable-state change are deployed as
+recorded above. Manual checks persist sanitized current-run observations and
 internal stabilization state. Scope save/disconnect atomically clear that state
 and pending notices. Notification creation defaults off with no activation API;
 public status stays unknown/unconnected. Continuous monitoring, signed events,
@@ -19,7 +58,7 @@ Wrangler deployment dry run. New cases cover concurrent idle commits, quiet
 interval timing and expiry, outage recovery without losing an epoch, atomic
 rollback, scope cleanup, field sanitization, disabled production notices and
 scope changes made by the previous Worker during migration/upload. Hosted
-migration/deployment remain pending CI.
+migration/deployment subsequently passed as recorded above.
 
 ## Manual Actions check deployment
 

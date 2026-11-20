@@ -17,9 +17,10 @@ The current implementation contains the PWA shell, honest unknown-status API,
 a pure idle-decision function, owner authorization handlers, and an owner-only
 repository inventory check. D1 session storage is deployed and verified. Saved
 public scope and disconnect handlers are deployed and owner-verified. A manual
-owner Actions check is deployed and owner-verified for an empty scan. Durable
-monitor state and atomic outbox support are implemented, awaiting CI/deployment;
-scheduled handlers, webhook ingestion and push remain planned. See
+owner Actions check is deployed and verified for empty and running scans, with
+durable state verified in hosted D1. Signed event ingestion is implemented,
+awaiting CI/deployment and dedicated secret setup; scheduled handlers and push
+remain planned. See
 roadmap.md for boundaries and github-connection.md for the sign-in contract.
 
 ## Frontend and framework choice
@@ -122,8 +123,9 @@ previous document; it makes no claim of current access. The UI clears its old
 scope on a failed operation and offers an explicit reload.
 
 Saved scope is preparation only: public status remains unknown/unconnected.
-Only an explicit owner Actions check can query run status; there is no webhook
-handler, scheduled scan or notification delivery. Scan results are fenced by
+Only an explicit owner Actions check can query run status. The signed receiver
+records event evidence without calling GitHub; there is no scheduled scan or
+notification delivery. Scan results are fenced by
 both the scope revision and the monitor revision. Scope replacement/disconnect
 atomically resets monitor state and removes pending outbox work.
 
@@ -181,7 +183,47 @@ An empty check explicitly does not assert public global idle. The internal
 activity latch and quiet-period state are now persisted, while `/api/status`
 remains unknown/unconnected. The owner confirmed all five unfinished statuses
 block idle. Webhook ordering and continuous reconciliation remain subsequent
-milestones; a successful live empty scan does not verify live nonempty handling.
+milestones. The owner verified a running workflow in the required organization
+and its persisted busy state/activity latch in hosted D1.
+
+## Signed event ingestion
+
+`POST /api/webhooks/github` authenticates the unmodified raw body with Web Crypto
+HMAC SHA-256 and a dedicated Worker/GitHub App secret. It fails closed without
+that secret. Payloads are bounded to 1 MiB; signed bytes are verified before
+UTF-8 decoding, JSON parsing or database access. Headers, method, media type and
+canonical origin are validated. Fixed responses/logs never include raw payloads,
+signatures, profile information or provider URLs. See [webhooks.md](webhooks.md)
+for the receiver contract and owner setup instructions.
+
+Current App/owner/organization configuration must match the saved scope key.
+Workflow evidence must match a saved public repository's immutable ID, owner,
+full name and installation. Unconfigured/private repositories produce no
+receipts or activity. A formerly monitored repository becoming private clears
+scope rather than counting that private activity.
+
+Migration 0004 adds globally unique delivery receipts and a latest-attempt run
+ledger. One D1 batch inserts a receipt under the current scope/configuration,
+updates only meaningful/newer evidence and increments monitor revision for
+fresh activity. Terminal attempts cannot reopen; old attempts cannot close a
+new rerun. Commit markers prevent duplicate/losing writes from acting on another
+delivery. Failures roll back the receipt and state together. The storage layer
+also checks actual saved public IDs, independently of its caller.
+
+Fresh evidence, including completion, sets unknown, arms activity, clears cached
+runs/quiet candidate and cancels an unsent prior notice. It invalidates in-flight
+scans but never asserts idle or starts a provider query. REST observations record
+seen attempts and stabilized-idle accounting times without inferring terminal
+status. A late completion for an already covered period cannot rearm a duplicate
+idle cycle; an unseen fast run or a new attempt still can. REST results that
+contradict a signed terminal/higher attempt are rejected.
+
+Signed installation/selection/repository coverage-loss events atomically clear
+scope, run state and pending notices. Receipt tombstones survive scope changes
+so redelivery cannot clear a fresh owner save again. Expired/pre-scope events
+are ignored. Accepted deliveries opportunistically remove up to 50 expired
+receipts and run records after seven days; scheduled cleanup is still planned.
+Public status stays unknown/unconnected and notification readiness stays off.
 
 ## Owner repository inventory
 
@@ -285,9 +327,9 @@ If the previous deployed Worker saves scope between migration and code upload,
 the first new scan repairs only the scope-revision mismatch, resetting confidence
 and notice readiness and clearing obsolete outbox work before taking its token.
 
-Webhook delivery IDs still need a unique constraint. Attempts and out-of-order
-events must not reopen a completed run incorrectly. This change stores complete
-scan observations, not a webhook event log or durable per-event ordering ledger.
+The webhook ledger stores only latest-attempt IDs/status/timing and delivery
+IDs, not full payloads or a history view. Signing and ordering are runtime-tested;
+real GitHub delivery verification remains after deployment and secret setup.
 
 Push delivery consumes the outbox with per-device delivery tracking and retry
 backoff. A notice is not marked sent before a push service accepts it. An ambiguous
@@ -301,8 +343,8 @@ once display on all devices.
 | --- | --- |
 | Saved public scope (implemented) | Atomic account/installation and public repository document, configuration key, revision, verification time |
 | Repository monitoring state | Revalidated visibility, current access health and successful scan time |
-| Runs/attempts (scan persistence implemented) | Sanitized complete active-run document; per-event ordering still planned |
-| Webhook deliveries | Idempotency and processing result with bounded retention |
+| Runs/attempts (implemented) | Sanitized active-run document and latest signed attempt/status with REST accounting time |
+| Webhook deliveries (implemented) | Unique delivery IDs, scope generation and receive time, with opportunistic expiry cleanup |
 | Monitor state (implemented) | Scope/revision fencing, phase, activity latch, epoch, quiet candidate, last complete scan, disabled notice readiness |
 | Push subscriptions | Private endpoint and keys for each authorized device |
 | Notification outbox (atomic creation implemented, disabled) | Stable epoch and relevant run link; delivery/retry state still planned |

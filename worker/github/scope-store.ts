@@ -2,6 +2,7 @@ import type { GitHubAccountScope, RepositoryAccessReport, SavedMonitoringScope }
 import type { AuthConfig, Bindings } from '../auth/config.ts';
 import { repositoryScopes } from './scopes.ts';
 import { resetMonitorScope } from '../monitor-store.ts';
+import { WEBHOOK_RETENTION_MS } from './webhook-store.ts';
 
 interface ScopeDocument {
   accounts: { id: string; login: string; kind: GitHubAccountScope['kind']; installationId: number; selection: 'all' | 'selected' }[];
@@ -98,6 +99,43 @@ export class MonitoringScopeStore {
     if (prepared && (!row.verified_at || !Number.isFinite(Date.parse(row.verified_at)))) throw new Error('Invalid saved scope');
     return { revision: row.revision, prepared, policy: 'public-only', verifiedAt: prepared ? row.verified_at : null,
       repositories: prepared ? readDocument(row.scope_json!, key).repositories : [] };
+  }
+
+  // Server callbacks have no browser session/login. Recover the saved owner
+  // login only to recompute the FULL current configuration key, then use the
+  // same scope validator as owner requests. Payloads cannot choose this login.
+  async configured(env: Bindings, config: AuthConfig): Promise<{ key: string; scope: SavedMonitoringScope; accounts: ScopeDocument['accounts'] } | null> {
+    const row = await this.database.withSession('first-primary')
+      .prepare('SELECT revision, config_key, verified_at, scope_json FROM monitoring_scope WHERE singleton = 1').first<ScopeRow>();
+    if (!row) throw new Error('Monitoring storage unavailable');
+    if (!row.config_key) return null;
+    const saved: unknown = JSON.parse(row.config_key);
+    const login = saved && typeof saved === 'object' && 'accounts' in saved && Array.isArray(saved.accounts)
+      ? saved.accounts[0]?.login : null;
+    if (typeof login !== 'string' || !/^[A-Za-z0-9-]{1,39}$/.test(login)) throw new Error('Invalid saved scope');
+    const key = scopeKey(env, config, login);
+    if (key !== row.config_key) return null;
+    const scope = await this.read(key);
+    return scope.prepared && scope.revision === row.revision && row.scope_json
+      ? { key, scope, accounts: readDocument(row.scope_json, key).accounts } : null;
+  }
+
+  async invalidate(key: string, revision: number, delivery: string, now: number): Promise<void> {
+    const database = this.database.withSession('first-primary');
+    const marker = crypto.randomUUID();
+    const result = await database.batch([
+      database.prepare(`INSERT INTO webhook_deliveries (delivery_id, scope_revision, received_at, commit_key)
+        SELECT ?, 0, ?, ? FROM monitoring_scope WHERE singleton = 1 AND revision = ? AND config_key = ? AND scope_json IS NOT NULL
+        ON CONFLICT(delivery_id) DO NOTHING`).bind(delivery, now, marker, revision, key),
+      database.prepare(`UPDATE monitoring_scope SET revision = revision + 1,
+        config_key = NULL, verified_at = NULL, scope_json = NULL WHERE singleton = 1 AND revision = ? AND config_key = ?
+        AND EXISTS (SELECT 1 FROM webhook_deliveries WHERE delivery_id = ? AND commit_key = ?)`)
+        .bind(revision, key, delivery, marker), ...resetMonitorScope(database),
+      database.prepare(`DELETE FROM webhook_deliveries WHERE delivery_id IN
+        (SELECT delivery_id FROM webhook_deliveries WHERE received_at < ? LIMIT 50)`)
+        .bind(now - WEBHOOK_RETENTION_MS),
+    ]);
+    if (result.some(statement => !statement.success)) throw new Error('Monitoring storage unavailable');
   }
 
   async save(key: string, expectedRevision: number, report: RepositoryAccessReport): Promise<SavedMonitoringScope> {
