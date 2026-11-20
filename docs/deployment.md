@@ -1,5 +1,32 @@
 # Deployment status
 
+## Repository discovery preparation
+
+The owner reports saving the App's read permissions, All repositories selection,
+and private key directly in Cloudflare. Wrangler's secret-name listing confirms
+`GITHUB_APP_PRIVATE_KEY`, `GITHUB_CLIENT_SECRET` and `SESSION_SECRET` are present.
+Their values were not read. The new owner-only access check is implemented and
+tested locally but is not deployed or verified with the actual installation yet.
+The live Worker remains the owner sign-in fix version recorded below.
+
+## Owner sign-in fix deployment
+
+After main CI passed, commit `310c7a0d57a0ddc33dafbb57cd0ef24f367d1be0`
+was deployed as Cloudflare version `1164b1b7-2802-406b-a2d7-7283bf2f456d`.
+The existing secrets and public configuration were preserved.
+
+The live callback now returns `verification` for an intentionally invalid code
+with fresh, valid browser state. Before the fix it returned `provider` without
+sending an outbound request. This verifies the exchange reaches GitHub; it does
+not replace a real owner authorization test. The session endpoint reports
+configured and unauthenticated, health is OK, and monitor status remains unknown
+and unconnected. The owner then completed real browser authorization and
+confirmed `/settings` shows **Signed in as rdpollard** with the identity
+connected notice. The owner installed the App and reports saving repository read
+permissions and All repositories. Server-side installation verification and
+live repository discovery are still pending. Denial of another real GitHub
+account has not been exercised.
+
 ## Sign-in diagnostics deployment
 
 After CI passed, main commit `58c7190e220e35b352d92e654546f4104a72f4cd`
@@ -16,7 +43,8 @@ test did not exercise the code-exchange request.
 The correction uses `redirect: 'manual'` and explicitly rejects all 3xx
 responses. A full workerd callback test now covers token exchange, identity
 lookup, owner session creation and redirects from both provider endpoints.
-This correction still needs CI and deployment before another real sign-in test.
+This correction passed CI and was deployed as recorded above. Real owner
+sign-in remains to be verified.
 
 ## Owner connection deployment
 

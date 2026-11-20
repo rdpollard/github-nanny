@@ -1,14 +1,19 @@
 # GitHub owner connection
 
-This change adds owner identity authorization. Repository discovery, Actions
-webhooks, D1 and notifications are separate upcoming changes. A successful
+Owner identity authorization is deployed. Owner-only repository discovery is
+implemented and awaiting CI/deployment. Actions webhooks, D1 and notifications
+are separate upcoming changes. A successful
 sign-in does not imply that live monitoring is connected. Public status remains
 unknown until that pipeline is implemented and synchronized.
 
 The owner connection code has passed CI, is merged into `main`, and is deployed.
 The session signing key and owner-entered `GITHUB_CLIENT_SECRET` are installed.
 The real sign-in attempt failed because Workers rejects the fetch redirect mode
-used by the exchange. The fix must pass CI and be deployed before retrying.
+used by the exchange. The fix passed CI and is deployed. The owner completed
+real browser authorization and confirmed **Signed in as rdpollard**. The owner
+installed the App and reports saving Actions/Metadata read access and All
+repositories. Server-side installation verification and repository discovery
+are still pending.
 
 ## Registered app
 
@@ -61,6 +66,50 @@ After registration, record the public **Client ID** and the app slug from its
 GitHub URL. Generate a **client secret**. The app private key and webhook secret
 will be needed for the subsequent installation/tracking milestone, not this one.
 
+## Prepare installation authentication
+
+Owner identity sign-in is verified. The App was initially installed without
+repository permissions; the owner then reports saving Actions: read, Metadata:
+read and All repositories. The backend must still verify the actual installation
+and its access through GitHub before claiming coverage.
+
+GitHub App API authentication requires its own private key, separate from the
+OAuth client secret already installed:
+
+1. Open https://github.com/settings/apps/gh-nanny. In **Credentials → Key pairs**,
+   select **New key**. GitHub downloads a PEM file. Some GitHub settings layouts
+   label this **Private keys → Generate a private key**.
+2. Open the downloaded file in a local text editor and copy its entire contents,
+   including the BEGIN/END lines and newlines.
+3. In the existing Cloudflare Worker's **Settings → Variables and Secrets**,
+   add a **Secret** named `GITHUB_APP_PRIVATE_KEY`. Paste the complete PEM and
+   select **Deploy**. Do not send the key through chat or add it to the repo.
+
+The owner reports saving `GITHUB_APP_PRIVATE_KEY`; Wrangler confirms that secret
+name is present without reading its value. The new backend accepts GitHub's
+PKCS#1 PEM keys and unencrypted PKCS#8, with signing tested in workerd. The real
+key and installation have not been verified by this code yet. There is still no
+database, webhook ingestion or scheduler.
+
+## Check repository access after deployment
+
+1. Sign in on `/settings` and select **Check repository access**.
+2. The backend verifies the owner installation and read permissions, requests a
+   short-lived installation token, and reads every repository page.
+3. Confirm the public repository list/count and **All repositories** selection.
+   Private names are omitted; a private count is visible only to the owner.
+
+The result covers the personal-account installation, not every collaborator
+repository the user can access elsewhere. Selected installations are clearly
+labeled. Changing, truncated or over-budget inventories are rejected rather
+than displayed as complete. The operation is limited to 20 repository pages of
+100 items; larger accounts will need the planned batch/reconciliation pipeline.
+
+The UI makes no periodic requests to this endpoint. No Actions run or job status
+is queried, and no monitor configuration is written. A failed retry clears the
+old inventory. Public status stays unknown/unconnected until the actual
+monitoring pipeline is implemented. Webhooks must remain inactive.
+
 ## Configure the Worker
 
 Public settings in `wrangler.jsonc`:
@@ -83,6 +132,8 @@ Worker secrets (never source, browser storage or VITE_* variables):
   For a local private shell, generate with
   `node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("base64url"))'`.
   Do not paste the generated value in chat or a commit.
+- `GITHUB_APP_PRIVATE_KEY`: the complete GitHub App PEM key, as described above.
+  This is separate from the OAuth client secret and must stay a Worker Secret.
 
 Use the project's existing Wrangler version and authenticated account. Remember
 that `wrangler secret put` creates/deploys a version immediately; configure the
@@ -133,8 +184,9 @@ expiry and CSRF protection. A workerd integration test verifies that the built
 Worker signs/verifies cookies in its actual runtime. Browser smoke checks cover
 the unconfigured owner screen and keep the public dashboard available.
 
-The App is registered and the approved code and secrets are deployed. The real
-authorization flow must still succeed, including denial of another account.
+The App is registered and the approved code and secrets are deployed. Real
+owner authorization succeeded. Denial of another account is covered in tests
+but has not been verified with another real GitHub account.
 No scheduled GitHub checks or status watchers are added by this milestone.
 
 ## Sign-in failure diagnostics
@@ -172,3 +224,7 @@ incompatibility again.
 - https://developers.cloudflare.com/workers/observability/logs/workers-logs/#invocation-logs
 - https://developers.cloudflare.com/workers/testing/miniflare/writing-tests/
 - https://developers.cloudflare.com/workers/runtime-apis/request/#requestinit
+- https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/managing-private-keys-for-github-apps
+- https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app
+- https://docs.github.com/en/rest/apps/apps#get-a-user-installation-for-the-authenticated-app
+- https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation

@@ -14,7 +14,8 @@ flowchart LR
 ```
 
 The current implementation contains the PWA shell, honest unknown-status API,
-a pure idle-decision function, and owner authorization handlers. D1, scheduled
+a pure idle-decision function, owner authorization handlers, and an owner-only
+repository inventory check. D1, scheduled
 handlers, webhook ingestion and push delivery are planned, not active. See
 roadmap.md for boundaries and github-connection.md for the sign-in contract.
 
@@ -62,7 +63,41 @@ Logout clears the browser session cookie; signed cookies already copied to
 another client are not centrally revoked and expire within eight hours. Rotating
 SESSION_SECRET or changing the configured owner invalidates existing sessions.
 Server-side session revocation can be introduced with D1 before more powerful
-owner operations are added. No public mutation endpoints are enabled.
+owner operations are added. No public mutation endpoints are enabled. The new
+repository inventory is a read operation and does not persist configuration or
+start monitoring.
+
+## Owner repository inventory
+
+`GET /api/admin/repositories` requires a valid owner session, the canonical
+application origin, and no cross-site Fetch Metadata indication. It only runs
+after an explicit click in `/settings`, with no timer, cron, or Actions requests.
+
+The backend signs a nine-minute RS256 JWT using the existing Client ID as issuer
+and a 60-second clock-skew allowance. GitHub's PKCS#1 PEM key is wrapped as
+PKCS#8 for native Web Crypto import; unencrypted PKCS#8 is also accepted. No key
+material or token enters the frontend. Keys must be RSA with 2048–8192 bits.
+
+The owner login from the signed session locates the App installation; the
+returned immutable account ID must match the configured owner. The personal
+installation must be active and grant only Actions: read and Metadata: read.
+An installation token is requested with exactly those permissions and no
+repository subset. Tokens exist only within the request and expire at GitHub;
+they are neither persisted nor returned to the browser.
+
+Repository pages use fixed api.github.com paths, with 100 items per page and a
+20-page budget (at most 22 outbound requests for this operation). Declared totals
+must remain consistent and match unique IDs; duplicates, short/empty pages with
+remaining items, extra next links, foreign owners, malformed data, and over-budget
+or over-2-MiB page responses fail the entire check. Redirects are rejected in
+manual mode. Fixed error categories handle provider failures without copying
+provider bodies or exception text into logs or HTTP responses.
+
+The response exposes public repository names/links, the private repository count,
+and whether the installation uses All or selected repositories. It describes
+only that personal-account installation. It cannot prove coverage for other
+accounts' collaborator repositories or establish global idle. The public status
+API remains unknown/unconnected, and a failed UI retry clears the old inventory.
 
 ## Idle decision and races
 

@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import { readSignedCookie, SESSION_COOKIE, SESSION_SECONDS, signCookie } from '../worker/auth/cookies.ts';
+import { rsaFixture, verifyAppJwt } from './helpers/keys.ts';
 
 const origin = 'https://nanny.example';
 const secret = 'A'.repeat(43); // Test fixture only.
@@ -48,6 +49,67 @@ test('built Worker signs and verifies owner cookies in workerd', async () => {
     const status = await worker.dispatchFetch(`${origin}/api/status`);
     assert.equal((await status.json()).phase, 'unknown');
   } finally { await worker.dispose(); }
+});
+
+test('built Worker signs App JWTs and discovers complete repository inventories in workerd', async () => {
+  const keys = await rsaFixture();
+  const permissions = { actions: 'read', metadata: 'read' };
+  for (const mode of ['success', 'duplicate', 'redirect']) {
+    const calls = [];
+    const started = Math.floor(Date.now() / 1000);
+    const repository = (id, privateRepository = false) => ({
+      id, name: privateRepository ? 'hidden-private-name' : `repo-${id}`, private: privateRepository,
+      owner: { id: 27035363, login: 'rdpollard' },
+    });
+    const worker = new Miniflare(convertV4MiniflareOptions({
+      modules: true, scriptPath: 'dist/github_nanny/index.js', compatibilityDate: '2026-11-19',
+      bindings: { ...bindings, GITHUB_APP_PRIVATE_KEY: keys.pkcs1 },
+      outboundService: async request => {
+        calls.push(request.url);
+        if (request.url.startsWith('https://api.github.com/users/') || request.url.includes('/access_tokens')) {
+          const jwt = request.headers.get('Authorization').slice(7);
+          const claims = JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString());
+          assert.ok(claims.iat >= started - 60 && claims.iat <= Math.floor(Date.now() / 1000) - 60);
+          assert.equal(await verifyAppJwt(jwt, keys.publicKey, bindings.GITHUB_CLIENT_ID, (claims.exp - 540) * 1000), true);
+        }
+        if (request.url === 'https://api.github.com/users/rdpollard/installation') return Response.json({
+          id: 7, account: { id: 27035363, type: 'User' }, permissions, suspended_at: null,
+          client_id: bindings.GITHUB_CLIENT_ID, app_slug: bindings.GITHUB_APP_SLUG, repository_selection: 'all',
+        });
+        if (request.url === 'https://api.github.com/app/installations/7/access_tokens') {
+          assert.deepEqual(await request.json(), { permissions });
+          return Response.json({ token: 'test-installation-token', permissions, repository_selection: 'all', expires_at: new Date(Date.now() + 3_600_000).toISOString() }, { status: 201 });
+        }
+        assert.equal(new URL(request.url).origin, 'https://api.github.com');
+        assert.equal(new URL(request.url).pathname, '/installation/repositories');
+        assert.equal(request.headers.get('Authorization'), 'Bearer test-installation-token');
+        if (mode === 'redirect') return Response.json({}, { status: 302, headers: { Location: 'https://untrusted.example/secret' } });
+        const page = Number(new URL(request.url).searchParams.get('page'));
+        return Response.json({ total_count: 101, repositories: page === 1
+          ? Array.from({ length: 100 }, (_, i) => repository(i + 1)) : [repository(mode === 'duplicate' ? 1 : 101, true)] });
+      },
+    }));
+    try {
+      assert.equal((await worker.dispatchFetch(`${origin}/api/admin/repositories`)).status, 401);
+      assert.equal(calls.length, 0);
+      const iat = Math.floor(Date.now() / 1000);
+      const value = await signCookie({ purpose: 'owner-session', sub: '27035363', login: 'rdpollard', iat, exp: iat + SESSION_SECONDS }, secret);
+      const response = await worker.dispatchFetch(`${origin}/api/admin/repositories`, { headers: { Cookie: `${SESSION_COOKIE}=${value}` } });
+      assert.equal(response.headers.get('Cache-Control'), 'no-store');
+      const body = await response.json();
+      assert.equal(response.status, mode === 'success' ? 200 : 503);
+      if (mode === 'success') {
+        assert.equal(body.repositoryCount, 101);
+        assert.equal(body.repositories.length, 100);
+        assert.equal(body.privateRepositoryCount, 1);
+      } else assert.equal(body.reason, mode === 'duplicate' ? 'incomplete' : 'unavailable');
+      assert.equal(calls.length, mode === 'redirect' ? 3 : 4);
+      assert.ok(!JSON.stringify(body).includes('hidden-private-name'));
+      assert.ok(!JSON.stringify(body).includes('test-installation-token'));
+      const status = await worker.dispatchFetch(`${origin}/api/status`);
+      assert.equal((await status.json()).phase, 'unknown');
+    } finally { await worker.dispose(); }
+  }
 });
 
 test('built Worker exchanges OAuth codes and rejects upstream redirects in workerd', async () => {

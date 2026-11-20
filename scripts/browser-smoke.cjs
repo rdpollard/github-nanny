@@ -64,6 +64,34 @@ const path = require('node:path');
       await page.getByText('GitHub sign-in setup is pending.', { exact: true }).waitFor();
       assert.equal(await page.getByRole('status').count(), 0);
     }
+    // Check access only after an explicit owner click. Fixtures never contact
+    // GitHub; a failed retry must remove the preceding inventory from view.
+    let discoveryRequests = 0;
+    await page.route(`${origin}/api/auth/session`, route => route.fulfill({ json: {
+      configured: true, authenticated: true, owner: { id: '27035363', login: 'rdpollard' },
+      installationUrl: 'https://github.com/apps/github-nanny-test/installations/new',
+    } }));
+    await page.route(`${origin}/api/admin/repositories`, route => {
+      discoveryRequests++;
+      return route.fulfill(discoveryRequests === 1 ? { json: {
+        checkedAt: '2026-11-19T12:00:00Z', owner: 'rdpollard', installationId: 7, selection: 'all',
+        repositoryCount: 2, privateRepositoryCount: 1,
+        repositories: [{ id: 1, name: 'rdpollard/public-demo', url: 'https://github.com/rdpollard/public-demo' }],
+      } } : { status: 503, json: { error: 'Repository discovery unavailable', reason: 'incomplete' } });
+    });
+    await page.goto(`${origin}/settings`);
+    await page.getByRole('button', { name: 'Check repository access', exact: true }).waitFor();
+    assert.equal(discoveryRequests, 0);
+    await page.getByRole('button', { name: 'Check repository access', exact: true }).click();
+    await page.getByText('Repository access verified for rdpollard: 2 repositories (1 public, 1 private).', { exact: true }).waitFor();
+    await page.getByRole('link', { name: 'rdpollard/public-demo', exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.getByRole('button', { name: 'Check repository access', exact: true }).click();
+    await page.getByRole('alert').filter({ hasText: 'The repository list could not be completed consistently.' }).waitFor();
+    assert.equal(await page.getByRole('link', { name: 'rdpollard/public-demo', exact: true }).count(), 0);
+    assert.equal(discoveryRequests, 2);
+    await page.unroute(`${origin}/api/auth/session`);
+    await page.unroute(`${origin}/api/admin/repositories`);
     await page.getByRole('link', { name: 'Back to dashboard', exact: true }).click();
     await page.getByRole('heading', { name: 'Status unavailable' }).waitFor();
     await page.evaluate(() => navigator.serviceWorker.ready);

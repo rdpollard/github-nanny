@@ -14,15 +14,18 @@
 
 - [x] Register GitHub App `gh-nanny` and configure its public Client ID and slug.
 - [ ] Verify registered permissions/callback and confirm owner/install scope.
+- [x] Owner reports App installed, read permissions saved and All repositories selected.
 - [x] Implement owner-only GitHub App authorization, secure signed session
       cookies, browser-bound state and S256 PKCE. Provider identity tokens are
       used once and discarded; configuration/secrets remain required for use.
 - [x] Add `/settings` for owner sign-in, installation link and browser sign-out.
 - [x] Add fixed sign-in failure outcomes and credential-redaction regression tests.
 - [x] Exercise code exchange, identity lookup and redirect rejection in workerd.
-- [ ] Verify real GitHub App authorization after registration and deployment.
+- [x] Verify real owner GitHub App authorization after registration and deployment.
 - [ ] Add server-side revocation/disconnect handling before broader owner writes.
-- [ ] Add D1 migrations and installation/repository discovery with pagination.
+- [ ] Add D1 migrations and persist verified installation/repository inventories.
+- [x] Implement explicit owner-only installation/repository access check with pagination.
+- [ ] Deploy the access check and verify the real App key and repository inventory.
 - [ ] Implement signature-verified webhooks, deduplication and event ordering.
 - [ ] Track all run IDs/attempts; test simultaneous runs of the same workflow.
 - [ ] Provide active-run API with scope/freshness and access failure handling.
