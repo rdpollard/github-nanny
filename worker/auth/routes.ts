@@ -8,6 +8,7 @@ import { GitHubAuthError, githubIdentity, type Fetcher } from './github.ts';
 import { checkRepositoryAccess, DiscoveryError } from '../github/discovery.ts';
 import { DatabaseSessions, type SessionStore } from './sessions.ts';
 import { MonitoringScopeStore, ScopeError, scopeKey } from '../github/scope-store.ts';
+import { checkActions, ActionsCheckError } from '../github/actions.ts';
 
 export const privateHeaders = {
   'Cache-Control': 'no-store', Vary: 'Cookie', 'X-Content-Type-Options': 'nosniff',
@@ -59,6 +60,7 @@ export async function authRoute(request: Request, env: Bindings, options: AuthOp
     ['/api/auth/callback', 'GET'], ['/api/auth/logout', 'POST'], ['/api/auth/logout-all', 'POST'], ['/api/admin/installation', 'GET'],
     ['/api/admin/repositories', 'GET'],
     ['/api/admin/monitoring', 'GET, POST, DELETE'],
+    ['/api/admin/actions', 'POST'],
   ]);
   const method = routes.get(url.pathname);
   if (!method) return null;
@@ -136,6 +138,15 @@ async function configuredAuthRoute(request: Request, env: Bindings, options: Aut
   const current = await session(request, config, sessions, now);
   const owner = current.view;
   if (!owner.authenticated) return json({ error: 'Owner sign-in required' }, 401);
+  if (url.pathname === '/api/admin/actions') {
+    if (request.headers.get('Sec-Fetch-Site') === 'cross-site' || request.headers.get('Origin') !== config.origin) return json({ error: 'Invalid request origin' }, 403);
+    try { return json(await checkActions(env, config, owner.owner!.login, { fetcher: options.fetcher, now: options.now })); }
+    catch (error) {
+      const reason = error instanceof ActionsCheckError ? error.reason : 'unavailable';
+      console.warn({ event: 'github_actions_check_failed', reason });
+      return json({ error: 'Actions check unavailable', reason }, reason === 'not_prepared' || reason === 'scope_changed' || reason === 'conflict' ? 409 : 503);
+    }
+  }
   if (url.pathname === '/api/admin/monitoring') {
     if (request.headers.get('Sec-Fetch-Site') === 'cross-site' ||
       (request.method !== 'GET' && request.headers.get('Origin') !== config.origin)) return json({ error: 'Invalid request origin' }, 403);

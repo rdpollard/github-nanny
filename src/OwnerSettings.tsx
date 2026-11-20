@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ExternalLink, Lock, LogOut } from 'lucide-react';
-import { DISCOVERY_MESSAGES, SIGN_IN_MESSAGES, type OwnerSession, type RepositoryAccessReport, type SavedMonitoringScope, type SignInOutcome } from '../shared/contracts';
+import { ACTIONS_CHECK_MESSAGES, DISCOVERY_MESSAGES, SIGN_IN_MESSAGES, type ActionsCheck, type OwnerSession, type RepositoryAccessReport, type SavedMonitoringScope, type SignInOutcome } from '../shared/contracts';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
+import { StatusBadge } from './components/StatusBadge';
 
 export function OwnerSettings() {
   const [session, setSession] = useState<OwnerSession | null>(null);
@@ -14,6 +15,9 @@ export function OwnerSettings() {
   const [scope, setScope] = useState<SavedMonitoringScope | null>(null);
   const [scopeBusy, setScopeBusy] = useState(false);
   const [scopeError, setScopeError] = useState<string | null>(null);
+  const [actions, setActions] = useState<ActionsCheck | null>(null);
+  const [actionsBusy, setActionsBusy] = useState(false);
+  const [actionsError, setActionsError] = useState<string | null>(null);
   const [outcome] = useState<SignInOutcome | null>(() => {
     const value = new URLSearchParams(location.search).get('sign_in');
     return value && Object.hasOwn(SIGN_IN_MESSAGES, value) ? value as SignInOutcome : null;
@@ -47,6 +51,8 @@ export function OwnerSettings() {
     setScopeBusy(true);
     setScope(null);
     setScopeError(null);
+    setActions(null);
+    setActionsError(null);
     try {
       const response = await fetch('/api/admin/monitoring', { method, cache: 'no-store', credentials: 'same-origin', signal });
       if (!response.ok) {
@@ -64,6 +70,26 @@ export function OwnerSettings() {
     } finally { if (!signal?.aborted) setScopeBusy(false); }
   }
 
+  async function checkActionsNow() {
+    setActionsBusy(true);
+    setActions(null);
+    setActionsError(null);
+    try {
+      const response = await fetch('/api/admin/actions', { method: 'POST', cache: 'no-store', credentials: 'same-origin' });
+      if (!response.ok) {
+        const data: { reason?: string } = await response.json();
+        const reason = data.reason;
+        setActionsError(response.status === 401 ? 'Sign in again before checking Actions.'
+          : typeof reason === 'string' && Object.hasOwn(ACTIONS_CHECK_MESSAGES, reason)
+            ? ACTIONS_CHECK_MESSAGES[reason as keyof typeof ACTIONS_CHECK_MESSAGES] : ACTIONS_CHECK_MESSAGES.unavailable);
+        if (reason === 'not_prepared' || reason === 'scope_changed' || reason === 'conflict') setScope(null);
+        return;
+      }
+      setActions(await response.json());
+    } catch { setActionsError(ACTIONS_CHECK_MESSAGES.unavailable); }
+    finally { setActionsBusy(false); }
+  }
+
   async function signOut(allDevices = false) {
     setSigningOut(true);
     setError(null);
@@ -72,6 +98,8 @@ export function OwnerSettings() {
       if (!response.ok) throw new Error('Sign-out unavailable');
       setDiscovery(null);
       setDiscoveryError(null);
+      setActions(null);
+      setActionsError(null);
       setSession(previous => previous && { ...previous, authenticated: false, owner: null, installationUrl: null });
     } catch { setError('Sign-out could not be completed. Please try again.'); }
     finally { setSigningOut(false); }
@@ -117,8 +145,8 @@ export function OwnerSettings() {
             {session.installationUrl && <Button asChild><a href={session.installationUrl} target="_blank" rel="noopener noreferrer">Install or manage GitHub App<ExternalLink aria-hidden="true" /></a></Button>}
             <p className="text-sm text-muted-foreground">Owner sign-in is ready. Live repository monitoring is not connected yet.</p>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => { void signOut(); }} disabled={signingOut || checking || scopeBusy}><LogOut aria-hidden="true" />{signingOut ? 'Signing out…' : 'Sign out'}</Button>
-              <Button variant="outline" onClick={() => { void signOut(true); }} disabled={signingOut || checking || scopeBusy}>Sign out all devices</Button>
+              <Button variant="outline" onClick={() => { void signOut(); }} disabled={signingOut || checking || scopeBusy || actionsBusy}><LogOut aria-hidden="true" />{signingOut ? 'Signing out…' : 'Sign out'}</Button>
+              <Button variant="outline" onClick={() => { void signOut(true); }} disabled={signingOut || checking || scopeBusy || actionsBusy}>Sign out all devices</Button>
             </div>
           </>}
         </CardContent>
@@ -126,7 +154,7 @@ export function OwnerSettings() {
       {session?.authenticated && <Card className="mt-6">
         <CardHeader><CardTitle>Repository access</CardTitle><CardDescription>Verify the configured personal and organization installations when you choose. This does not start Actions monitoring.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
-          <Button onClick={() => { void checkRepositories(); }} disabled={checking || signingOut || scopeBusy}>{checking ? 'Checking repository access…' : 'Check repository access'}</Button>
+          <Button onClick={() => { void checkRepositories(); }} disabled={checking || signingOut || scopeBusy || actionsBusy}>{checking ? 'Checking repository access…' : 'Check repository access'}</Button>
           {discoveryError && <p role="alert">{discoveryError}</p>}
           {discovery && <>
             <p role={discovery.complete ? 'status' : 'alert'}>{discovery.complete
@@ -154,9 +182,9 @@ export function OwnerSettings() {
         <CardHeader><CardTitle>Public monitoring scope</CardTitle><CardDescription>Save all public repositories from the configured installations after a fresh access check. Private repositories and their activity are excluded. Saving does not start Actions monitoring yet.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => { void manageScope('POST'); }} disabled={scopeBusy || checking || signingOut}>Save public scope</Button>
-            <Button variant="outline" onClick={() => { void manageScope('GET'); }} disabled={scopeBusy || checking || signingOut}>Reload saved scope</Button>
-            <Button variant="outline" onClick={() => { void manageScope('DELETE'); }} disabled={scopeBusy || checking || signingOut}>Disconnect saved scope</Button>
+            <Button onClick={() => { void manageScope('POST'); }} disabled={scopeBusy || checking || signingOut || actionsBusy}>Save public scope</Button>
+            <Button variant="outline" onClick={() => { void manageScope('GET'); }} disabled={scopeBusy || checking || signingOut || actionsBusy}>Reload saved scope</Button>
+            <Button variant="outline" onClick={() => { void manageScope('DELETE'); }} disabled={scopeBusy || checking || signingOut || actionsBusy}>Disconnect saved scope</Button>
           </div>
           {scopeBusy && <p role="status">Loading or updating saved scope…</p>}
           {scopeError && <p role="alert">{scopeError}</p>}
@@ -168,6 +196,25 @@ export function OwnerSettings() {
             </ul>}
           </>}
           <p className="text-sm text-muted-foreground">Disconnect clears the saved scope. It does not uninstall the GitHub App or sign you out.</p>
+        </CardContent>
+      </Card>}
+      {session?.authenticated && <Card className="mt-6">
+        <CardHeader><CardTitle>Manual Actions check</CardTitle><CardDescription>Check unfinished runs in the saved public repositories when you choose. Queued, running, requested, waiting and pending runs count as unfinished.</CardDescription></CardHeader>
+        <CardContent className="space-y-4">
+          <Button onClick={() => { void checkActionsNow(); }} disabled={!scope?.prepared || actionsBusy || scopeBusy || checking || signingOut}>{actionsBusy ? 'Checking Actions…' : 'Check Actions now'}</Button>
+          {actionsError && <p role="alert">{actionsError}</p>}
+          {actions && <>
+            <p role="status">{actions.runs.length ? `Unfinished runs observed: ${actions.runs.length}.` : 'No unfinished runs were found in this check. Global idle is not confirmed yet.'}</p>
+            <p className="text-sm text-muted-foreground">Checked {new Date(actions.checkedAt).toLocaleString()} across {actions.repositoryCount} public repositories. This snapshot does not refresh automatically.</p>
+            {actions.runs.length > 0 && <ul aria-label="Observed unfinished runs" className="space-y-3">
+              {actions.runs.map(run => <li key={`${run.id}:${run.attempt}`} className="space-y-2 rounded-lg border p-3">
+                <a className="break-all font-medium text-sky-700 underline dark:text-sky-400" href={run.url} target="_blank" rel="noopener noreferrer">{run.repository}: {run.workflow}</a>
+                <p className="break-all text-sm text-muted-foreground">{run.branch} · Attempt {run.attempt}</p>
+                <StatusBadge status={run.status} />
+              </li>)}
+            </ul>}
+          </>}
+          <p className="text-sm text-muted-foreground">Continuous monitoring and idle notifications are not connected yet. A single empty check cannot confirm global idle.</p>
         </CardContent>
       </Card>}
     </main>

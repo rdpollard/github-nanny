@@ -16,8 +16,9 @@ flowchart LR
 The current implementation contains the PWA shell, honest unknown-status API,
 a pure idle-decision function, owner authorization handlers, and an owner-only
 repository inventory check. D1 session storage is deployed and verified. Saved
-public scope and disconnect handlers are implemented, awaiting CI/deployment;
-scheduled handlers, webhook ingestion and push remain planned. See
+public scope and disconnect handlers are deployed and owner-verified. A manual
+owner Actions check is implemented and awaiting CI/deployment; scheduled
+handlers, webhook ingestion and push remain planned. See
 roadmap.md for boundaries and github-connection.md for the sign-in contract.
 
 ## Frontend and framework choice
@@ -119,10 +120,64 @@ unprepared and hidden until fresh verification. A failed save preserves the
 previous document; it makes no claim of current access. The UI clears its old
 scope on a failed operation and offers an explicit reload.
 
-This is preparation only: public status remains unknown/unconnected, with no
-Actions requests, webhook handler, scheduled scan or notification. Future scan
+Saved scope is preparation only: public status remains unknown/unconnected.
+Only an explicit owner Actions check can query run status; there is no webhook
+handler, scheduled scan or notification. Future scan
 results and notification work must also be fenced by this scope revision;
 disconnect must additionally invalidate/clear that future state before launch.
+
+## Manual Actions observation
+
+`POST /api/admin/actions` requires the owner session, canonical application
+origin and an exact matching Origin; cross-site Fetch Metadata is rejected.
+Only the settings button starts a check. Page visits, scope saves/reloads,
+public dashboard refreshes and timers do not call it. Caller bodies/queries
+cannot choose repositories, actors or branches.
+
+The handler reads the prepared scope from D1, repeats full installation discovery
+and requires the newly verified public repository IDs, names, accounts and
+installations to match that saved scope. A changed or newly private repository
+requires deliberate scope verification/save before scanning. Installation tokens
+are captured only in a request-local map after inventory verification, never in
+the report, browser, database or logs.
+
+For each saved public repository, verify its immutable ID, owner, full name and
+public visibility with metadata before run queries. Query every page of each
+documented unfinished status: queued, in_progress, requested, waiting, pending.
+Do not filter actor, branch, event or workflow. Each returned run must belong
+to that public repository, match the requested status, have no terminal
+conclusion and carry valid IDs/attempt/timestamps. Simultaneous runs sharing a
+workflow remain separate. Duplicate IDs across pages/statuses, including an
+attempt changing mid-scan, invalidate the observation rather than choose one.
+Run links are built from the verified repository and run ID/attempt; supplied
+URLs, logs, commit/profile data and head-repository metadata are discarded.
+
+Totals must remain stable, equal the unique returned count and agree with page
+sizes/next links. The GitHub status-filtered endpoint caps searches at 1,000
+results; a total at or above 1,000 is rejected as potentially truncated. Provider
+next links are never followed. Discovery and run/metadata requests share a
+40-request budget, a 25-second request deadline, 10-second individual timeouts
+and a 2-MiB bound per JSON response. No automatic retries are added. Four repos
+with single-page inventories/statuses use 34 GitHub requests: six discovery,
+twenty status queries and eight metadata reads. Pagination consumes remaining
+budget; larger scopes need future batched reconciliation.
+
+After all run queries, recheck public metadata for every repository and read
+the D1 scope again from the primary. Disconnect or another scope save changes
+the revision and rejects the in-flight result. Detected access/visibility
+changes, rate limits, provider errors, deadlines, oversized/malformed responses
+or incomplete pages return fixed errors with no partial runs. Visibility can
+still change immediately after the final check; distributed reads are not an
+atomic GitHub snapshot. This owner-only observation is not published or stored.
+
+The response contains scan start/end time, scope revision, repository count and
+explicit unfinished runs with their attempt numbers. A failed retry clears the
+prior UI observation; changing/reloading scope and sign-out also clear it.
+An empty check explicitly does not assert global idle. No activity latch, idle
+epoch or outbox is updated, and `/api/status` remains unknown/unconnected. The
+conservative treatment of waiting/requested/pending still needs owner policy
+confirmation before launch. Durable run tracking, webhook ordering, stabilized
+idle decisions and continuous reconciliation remain subsequent milestones.
 
 ## Owner repository inventory
 

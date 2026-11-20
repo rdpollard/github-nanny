@@ -1,5 +1,42 @@
 # Deployment status
 
+## Manual Actions check preparation
+
+The owner confirmed saved-scope setup, persistence across refresh, disconnect
+and saving again work in the live browser. Public scope setup is now verified.
+
+The next change adds an owner-triggered Actions observation with complete
+unfinished-status pagination, visibility/access revalidation, request limits,
+attempt-aware run links and scope revision fencing. It does not persist run
+state or assert global idle. No new database migration, permission or secret
+is required. The code is not deployed yet; public status remains unknown and
+webhooks, scheduled checks and push remain inactive.
+
+Local validation passed: `npm run check` (35 unit tests and 19 workerd/D1
+integration tests), browser smoke with system Chromium, and Wrangler deployment
+dry run. Coverage includes 101 active runs across pages, all five statuses,
+simultaneous workflows and attempts, private visibility changes, provider limits,
+malformed/truncated data, and disconnect during a scan. No real Actions request
+has been made by the new handler yet; real installation validation follows CI
+and deployment.
+
+## Saved public scope deployment
+
+After main CI passed, commit `564ec9b02a094ca7375868007f53c11bb97d8e02`
+was deployed manually as Cloudflare version
+`4d0c00c8-49c5-4f17-9479-84ca06419aa1`. Migration
+`0002_monitoring_scope.sql` applied successfully to the existing hosted D1
+database before Worker upload. Existing owner session records and Worker secrets
+were preserved. Automatic deployment remains disabled; its workflow was skipped.
+
+HTTPS checks confirmed the save/reload/disconnect controls are deployed,
+monitoring-scope GET/POST/DELETE require sign-in (401), unsupported methods return
+405, API responses are uncached, and health/sign-in configuration remain ready.
+A read-only D1 query confirmed the new scope starts empty at revision zero.
+Public status is still unknown/unconnected; no Actions monitoring has started.
+The owner verified saving all four public repositories, persistence across
+refresh, and disconnect followed by saving again in the real browser.
+
 ## Saved public scope preparation
 
 The owner confirmed persistent sign-in and all-device sign-out work in normal
@@ -8,8 +45,8 @@ and private browser windows. That live verification is complete.
 The next change adds migration `0002_monitoring_scope.sql` and owner-only
 save/reload/disconnect controls. Saves require fresh complete verification and
 persist only public records. Revision checks prevent a slow save from restoring
-a disconnected scope. This code and migration are not deployed yet; the live
-Worker remains the persistent-session version below. Actions monitoring,
+a disconnected scope. The code and migration are now deployed as recorded
+above. Actions monitoring,
 scheduled checks, webhook ingestion and push remain inactive.
 
 Local validation passed: generated types, TypeScript, 35 unit tests, the existing
@@ -17,7 +54,7 @@ seven workerd/D1 tests and five new scope integration tests, including real SQL
 revision races, private-repository exclusion, partial verification and malformed
 stored data. Browser smoke passed with system Chromium, including save conflict,
 reload, disconnect, mobile layout and sign-out. The new migration applied locally;
-its remote application is deferred until CI passes and deployment resumes.
+its remote application subsequently passed during deployment as recorded above.
 
 ## Persistent session deployment
 

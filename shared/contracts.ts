@@ -87,6 +87,24 @@ export interface ActiveRun {
   startedAt: string;
 }
 
+export interface ActionsCheck {
+  scopeRevision: number;
+  startedAt: string;
+  checkedAt: string;
+  repositoryCount: number;
+  runs: (ActiveRun & { attempt: number })[];
+}
+
+export const ACTIONS_CHECK_MESSAGES = {
+  not_prepared: 'Save a public monitoring scope before checking Actions.',
+  scope_changed: 'Repository scope or access changed. Verify and save the public scope again.',
+  conflict: 'The saved scope changed during this check. Reload it before trying again.',
+  incomplete: 'The Actions check could not cover every run consistently. No partial results are shown.',
+  rate_limited: 'GitHub has limited requests. Wait before checking Actions again.',
+  unavailable: 'Actions could not be checked. Please try again.',
+} as const;
+export type ActionsCheckFailure = keyof typeof ACTIONS_CHECK_MESSAGES;
+
 export interface DashboardSnapshot {
   phase: MonitorPhase;
   connected: boolean;

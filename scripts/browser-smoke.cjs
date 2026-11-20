@@ -75,6 +75,7 @@ const path = require('node:path');
     const organizationAccount = { id: '5925283', login: 'stormbots', kind: 'Organization', requiresAll: false, requiredRepositories: ['Tactics-Strategy-Dev-Environments'] };
     let scopeSaves = 0;
     let scopeDeletes = 0;
+    let actionsRequests = 0;
     let savedScope = { revision: 0, prepared: false, policy: 'public-only', verifiedAt: null, repositories: [] };
     await page.route(`${origin}/api/admin/monitoring`, route => {
       const method = route.request().method();
@@ -87,6 +88,17 @@ const path = require('node:path');
         savedScope = { revision: 2, prepared: false, policy: 'public-only', verifiedAt: null, repositories: [] };
       } else assert.equal(method, 'GET');
       return route.fulfill({ json: savedScope });
+    });
+    await page.route(`${origin}/api/admin/actions`, route => {
+      assert.equal(route.request().method(), 'POST');
+      actionsRequests++;
+      if (actionsRequests === 2) return route.fulfill({ status: 503, json: { reason: 'incomplete' } });
+      return route.fulfill({ json: {
+        scopeRevision: 1, startedAt: personalInventory.checkedAt, checkedAt: personalInventory.checkedAt, repositoryCount: 1,
+        runs: actionsRequests === 3 ? [] : [1, 2].map(id => ({ id, attempt: id, repository: 'rdpollard/public-demo', workflow: 'CI',
+          branch: 'feature/manual-check', status: 'queued', startedAt: personalInventory.checkedAt,
+          url: `https://github.com/rdpollard/public-demo/actions/runs/${id}/attempts/${id}` })),
+      } });
     });
     await page.route(`${origin}/api/auth/session`, route => route.fulfill({ json: {
       configured: true, authenticated: true, owner: { id: '27035363', login: 'rdpollard' },
@@ -113,6 +125,8 @@ const path = require('node:path');
     await page.getByRole('button', { name: 'Check repository access', exact: true }).waitFor();
     await page.getByText('No public monitoring scope is saved.', { exact: true }).waitFor();
     assert.equal(scopeSaves, 0);
+    assert.equal(actionsRequests, 0);
+    assert.equal(await page.getByRole('button', { name: 'Check Actions now', exact: true }).isDisabled(), true);
     assert.equal(discoveryRequests, 0);
     await page.getByRole('button', { name: 'Check repository access', exact: true }).click();
     await page.getByText('Repository access verified for rdpollard: 2 repositories (1 public, 1 private).', { exact: true }).waitFor();
@@ -134,6 +148,17 @@ const path = require('node:path');
     await page.getByRole('button', { name: 'Save public scope', exact: true }).click();
     await page.getByText('Public scope saved: 1 repositories. Actions monitoring is not active yet.', { exact: true }).waitFor();
     assert.equal(await page.getByRole('list', { name: 'Saved public repositories' }).getByRole('link').count(), 1);
+    assert.equal(actionsRequests, 0); // Saving/reloading never starts Actions queries.
+    await page.getByRole('button', { name: 'Check Actions now', exact: true }).click();
+    await page.getByText('Unfinished runs observed: 2.', { exact: true }).waitFor();
+    assert.equal(await page.getByRole('list', { name: 'Observed unfinished runs' }).getByRole('listitem').count(), 2);
+    await page.getByText('feature/manual-check · Attempt 2', { exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.getByRole('button', { name: 'Check Actions now', exact: true }).click();
+    await page.getByRole('alert').filter({ hasText: 'The Actions check could not cover every run consistently.' }).waitFor();
+    assert.equal(await page.getByRole('list', { name: 'Observed unfinished runs' }).count(), 0);
+    await page.getByRole('button', { name: 'Check Actions now', exact: true }).click();
+    await page.getByText('No unfinished runs were found in this check. Global idle is not confirmed yet.', { exact: true }).waitFor();
     await page.getByRole('button', { name: 'Save public scope', exact: true }).click();
     await page.getByRole('alert').filter({ hasText: 'The saved scope changed in another request.' }).waitFor();
     assert.equal(await page.getByRole('list', { name: 'Saved public repositories' }).count(), 0);
@@ -142,6 +167,9 @@ const path = require('node:path');
     await page.getByRole('button', { name: 'Disconnect saved scope', exact: true }).click();
     await page.getByText('No public monitoring scope is saved.', { exact: true }).waitFor();
     assert.equal(scopeDeletes, 1);
+    assert.equal(actionsRequests, 3);
+    assert.equal(await page.getByRole('button', { name: 'Check Actions now', exact: true }).isDisabled(), true);
+    assert.equal(await page.getByText('No unfinished runs were found in this check. Global idle is not confirmed yet.', { exact: true }).count(), 0);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     let logoutAllRequests = 0;
     await page.route(`${origin}/api/auth/logout-all`, route => {
@@ -158,6 +186,7 @@ const path = require('node:path');
     await page.unroute(`${origin}/api/auth/session`);
     await page.unroute(`${origin}/api/admin/repositories`);
     await page.unroute(`${origin}/api/admin/monitoring`);
+    await page.unroute(`${origin}/api/admin/actions`);
     await page.getByRole('link', { name: 'Back to dashboard', exact: true }).click();
     await page.getByRole('heading', { name: 'Status unavailable' }).waitFor();
     await page.evaluate(() => navigator.serviceWorker.ready);
