@@ -146,7 +146,7 @@ monitoring pipeline is implemented. Webhooks must remain inactive.
 
 ## Save or disconnect the public scope
 
-The saved-scope change is deployed. The owner can use **Save public scope** to
+The saved-scope change is deployed and owner-verified. The owner can use **Save public scope** to
 run a new access verification and
 persist only public repositories from all configured accounts. This is separate
 from **Check repository access**, which still only displays a report. No supplied
@@ -163,6 +163,21 @@ Private names/counts and tokens are not stored in the scope document. Saving
 does not start Actions queries, webhooks, scheduled monitoring or push. Public
 status remains unknown until the live pipeline is implemented. Future monitoring
 must revalidate visibility and access rather than trust this saved snapshot.
+
+## Manually check Actions
+
+The next change adds **Check Actions now** in settings; it awaits CI/deployment.
+The button requires a saved scope and performs a fresh installation/access check,
+then reads all pages of queued, running, requested, waiting and pending runs in
+those public repositories. It does not limit branches, actors or event types.
+Run links include the attempt number. No new GitHub App permissions or secrets
+are needed: Actions read and Metadata read are already configured.
+
+No Actions request runs automatically on page load, scope save or reload. The
+result is an owner-only snapshot with a check time, not a public monitoring feed.
+No partial result is shown after an error, lost access or scope change. An empty
+check does not confirm global idle or send a notification. Private repository
+activity is excluded. Webhooks and scheduled checks remain inactive.
 
 ## Configure the Worker
 

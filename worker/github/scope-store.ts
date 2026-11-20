@@ -81,6 +81,10 @@ function document(report: RepositoryAccessReport, key: string): ScopeDocument {
   return { accounts, repositories: repositories.sort((a, b) => a.name.localeCompare(b.name)) };
 }
 
+export function verifiedScopeRepositories(report: RepositoryAccessReport, key: string): SavedMonitoringScope['repositories'] {
+  return document(report, key).repositories;
+}
+
 export class MonitoringScopeStore {
   private readonly database: Cloudflare.Env['DB'];
   constructor(database: Cloudflare.Env['DB']) { this.database = database; }

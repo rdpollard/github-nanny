@@ -3,19 +3,11 @@ import type { AuthConfig, Bindings } from '../auth/config.ts';
 import type { Fetcher } from '../auth/github.ts';
 import { appJwt } from './jwt.ts';
 import { repositoryScopes } from './scopes.ts';
-
-export class DiscoveryError extends Error {
-  readonly reason: DiscoveryFailure;
-  constructor(reason: DiscoveryFailure) {
-    super('Repository discovery failed');
-    this.name = 'DiscoveryError';
-    this.reason = reason;
-  }
-}
+import { DiscoveryError, githubRequest, type GitHubBudget } from './client.ts';
+export { DiscoveryError } from './client.ts';
 
 const PAGE_SIZE = 100;
 const MAX_PAGES = 20;
-const MAX_BODY_BYTES = 2_097_152;
 
 function record(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -30,31 +22,11 @@ function readPermissions(value: unknown): boolean {
     Object.keys(value).every(key => key === 'actions' || key === 'metadata');
 }
 
-async function json(response: Response): Promise<Record<string, unknown>> {
-  if (!response.body) throw new DiscoveryError('unavailable');
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let body = '';
-  let bytes = 0;
-  try {
-    while (true) {
-      const next = await reader.read();
-      if (next.done) break;
-      bytes += next.value.byteLength;
-      if (bytes > MAX_BODY_BYTES) { await reader.cancel(); throw new DiscoveryError('incomplete'); }
-      body += decoder.decode(next.value, { stream: true });
-    }
-    body += decoder.decode();
-  } finally { reader.releaseLock(); }
-  const result: unknown = JSON.parse(body);
-  if (!record(result)) throw new DiscoveryError('unavailable');
-  return result;
-}
-
 // Every account must be chosen by server configuration and checked by immutable
 // ID. A public App installation elsewhere does not expand the configured scope.
 export async function discoverRepositories(env: Bindings, config: AuthConfig, login: string, options: {
-  fetcher?: Fetcher; now?: number; account?: GitHubAccountScope; budget?: { remaining: number };
+  fetcher?: Fetcher; now?: number; account?: GitHubAccountScope; budget?: GitHubBudget;
+  onVerified?: (inventory: RepositoryDiscovery, token: string) => void;
 } = {}): Promise<RepositoryDiscovery> {
   const fetcher = options.fetcher ?? fetch;
   const now = options.now ?? Date.now();
@@ -63,33 +35,9 @@ export async function discoverRepositories(env: Bindings, config: AuthConfig, lo
   try { jwt = await appJwt(config.clientId, env.GITHUB_APP_PRIVATE_KEY ?? '', now); }
   catch { throw new DiscoveryError('setup'); }
 
-  // The paths below are generated here. Provider-supplied links are never used
-  // as request destinations, so JWTs/tokens cannot escape api.github.com.
-  async function request(path: string, token: string, options: {
-    body?: object; missing?: DiscoveryFailure;
-  } = {}) {
-    if (budget.remaining-- <= 0) throw new DiscoveryError('incomplete');
-    const response = await fetcher(`https://api.github.com${path}`, {
-      method: options.body ? 'POST' : 'GET', redirect: 'manual', signal: AbortSignal.timeout(10_000),
-      headers: {
-        Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}`,
-        'User-Agent': 'GitHub-Nanny', 'X-GitHub-Api-Version': '2026-03-10',
-        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-      },
-      ...(options.body ? { body: JSON.stringify(options.body) } : {}),
-    });
-    if (!response.ok) {
-      await response.body?.cancel();
-      if (response.status === 401) throw new DiscoveryError('authentication');
-      if (response.status === 429 || (response.status === 403 && response.headers.get('X-RateLimit-Remaining') === '0')) throw new DiscoveryError('rate_limited');
-      if (response.status === 403 || response.status === 422) throw new DiscoveryError('permissions');
-      if (response.status === 404 && options.missing) throw new DiscoveryError(options.missing);
-      throw new DiscoveryError('unavailable');
-    }
-    return { data: await json(response), link: response.headers.get('Link') };
-  }
-
   const budget = options.budget ?? { remaining: 22 };
+  const request = (path: string, token: string, settings: { body?: object; missing?: DiscoveryFailure } = {}) =>
+    githubRequest(path, token, fetcher, budget, settings);
 
   try {
     if (!/^[A-Za-z0-9-]{1,39}$/.test(login)) throw new DiscoveryError('unavailable');
@@ -133,11 +81,13 @@ export async function discoverRepositories(env: Bindings, config: AuthConfig, lo
       if (seen.size > total) throw new DiscoveryError('incomplete');
       if (seen.size === total) {
         if (link && /rel\s*=\s*"?next\b/i.test(link)) throw new DiscoveryError('incomplete');
-        return {
+        const inventory: RepositoryDiscovery = {
           checkedAt: new Date(now).toISOString(), owner: login, installationId: installation.id,
           selection, repositoryCount: total, privateRepositoryCount,
           repositories: repositories.sort((a, b) => a.name.localeCompare(b.name)),
         };
+        options.onVerified?.(inventory, access.token);
+        return inventory;
       }
       if (data.repositories.length < PAGE_SIZE) throw new DiscoveryError('incomplete');
     }
@@ -149,7 +99,8 @@ export async function discoverRepositories(env: Bindings, config: AuthConfig, lo
 }
 
 export async function checkRepositoryAccess(env: Bindings, config: AuthConfig, login: string, options: {
-  fetcher?: Fetcher; now?: number;
+  fetcher?: Fetcher; now?: number; budget?: GitHubBudget;
+  onVerified?: (inventory: RepositoryDiscovery, token: string) => void;
 } = {}): Promise<RepositoryAccessReport> {
   // One verification generation shares its timestamp across every account and
   // the aggregate report, including when no test clock is supplied.
@@ -157,7 +108,7 @@ export async function checkRepositoryAccess(env: Bindings, config: AuthConfig, l
   let scopes: GitHubAccountScope[];
   try { scopes = repositoryScopes(env, config, login); }
   catch { throw new DiscoveryError('configuration'); }
-  const budget = { remaining: 40 };
+  const budget = options.budget ?? { remaining: 40 };
   const accounts: RepositoryAccountCheck[] = [];
   const repositoryIds = new Set<number>();
   for (const account of scopes) {

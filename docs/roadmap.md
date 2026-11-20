@@ -28,7 +28,7 @@
 - [ ] Extend disconnect to invalidate future scans, activity and pending notices.
 - [x] Create D1 database and add the first session migration.
 - [x] Add D1 migrations and persist verified public installation/repository scope.
-- [ ] Deploy and verify saved-scope setup/disconnect in the owner's browser.
+- [x] Deploy and verify saved-scope setup/disconnect in the owner's browser.
 - [x] Implement explicit owner-only installation/repository access check with pagination.
 - [x] Deploy the owner-only repository access check after CI.
 - [x] Verify the real App key and personal repository inventory in the owner's browser.
@@ -36,8 +36,12 @@
 - [x] Deploy organization support with `stormbots` configured after CI.
 - [x] Enable and verify the separate `stormbots` installation and required repository.
 - [x] Confirm public-only monitoring: four public repositories; 17 private repos excluded.
+- [x] Implement owner-triggered Actions observation across all five unfinished
+      statuses, with pagination, scope/visibility checks and per-run attempts.
+- [ ] Deploy and verify the manual Actions check with the owner's real installations.
 - [ ] Implement signature-verified webhooks, deduplication and event ordering.
-- [ ] Track all run IDs/attempts; test simultaneous runs of the same workflow.
+- [ ] Persist all run IDs/attempts and handle webhook ordering; manual scans
+      already test simultaneous runs of the same workflow.
 - [ ] Provide active-run API with scope/freshness and access failure handling.
 - [ ] Confirm waiting/requested/pending policy and any coverage fallback.
 

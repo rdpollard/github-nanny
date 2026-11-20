@@ -1,5 +1,25 @@
 # Deployment status
 
+## Manual Actions check preparation
+
+The owner confirmed saved-scope setup, persistence across refresh, disconnect
+and saving again work in the live browser. Public scope setup is now verified.
+
+The next change adds an owner-triggered Actions observation with complete
+unfinished-status pagination, visibility/access revalidation, request limits,
+attempt-aware run links and scope revision fencing. It does not persist run
+state or assert global idle. No new database migration, permission or secret
+is required. The code is not deployed yet; public status remains unknown and
+webhooks, scheduled checks and push remain inactive.
+
+Local validation passed: `npm run check` (35 unit tests and 19 workerd/D1
+integration tests), browser smoke with system Chromium, and Wrangler deployment
+dry run. Coverage includes 101 active runs across pages, all five statuses,
+simultaneous workflows and attempts, private visibility changes, provider limits,
+malformed/truncated data, and disconnect during a scan. No real Actions request
+has been made by the new handler yet; real installation validation follows CI
+and deployment.
+
 ## Saved public scope deployment
 
 After main CI passed, commit `564ec9b02a094ca7375868007f53c11bb97d8e02`
@@ -14,8 +34,8 @@ monitoring-scope GET/POST/DELETE require sign-in (401), unsupported methods retu
 405, API responses are uncached, and health/sign-in configuration remain ready.
 A read-only D1 query confirmed the new scope starts empty at revision zero.
 Public status is still unknown/unconnected; no Actions monitoring has started.
-The owner still needs to verify saving all four public repositories, persistence
-across refresh, and disconnect followed by saving again in the real browser.
+The owner verified saving all four public repositories, persistence across
+refresh, and disconnect followed by saving again in the real browser.
 
 ## Saved public scope preparation
 

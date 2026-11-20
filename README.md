@@ -27,8 +27,11 @@ This is the foundation and owner connection code, not a live monitor yet. It inc
   pagination, explicit organization scopes and required-repository gaps.
   It runs only when the owner clicks the check button.
 - An owner-only saved public scope, fresh verification before saving, and a
-  disconnect action. This is deployed, awaiting owner verification, and does not start Actions
-  monitoring. A saved inventory is not proof of current access or idle.
+  disconnect action. This is deployed and owner-verified. A saved inventory is
+  not proof of current access or idle.
+- An owner-triggered manual Actions check in settings, implemented and awaiting
+  CI/deployment. It covers all five unfinished statuses, complete pagination,
+  visibility/access validation and scope changes without claiming global idle.
 
 Webhook ingestion, run-state persistence, live reconciliation, and actual push delivery
 are the next milestones. The decision function is not
