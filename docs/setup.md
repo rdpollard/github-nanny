@@ -63,7 +63,7 @@ The initial scaffold can be deployed for UI review, but will still report
 unknown and cannot send notifications. Owner sign-in code is implemented in
 `main` and deployed with its secrets, and real owner sign-in is verified. The App
 is installed; the deployed access check verified the personal inventory. The
-organization extension and separate `stormbots` installation are still pending.
+organization extension and the separate `stormbots` installation are verified.
 Live monitoring is not implemented.
 
 An interactive Wrangler login does not authenticate GitHub Actions. CI requires
@@ -79,6 +79,37 @@ Keep `CLOUDFLARE_DEPLOY_ENABLED` disabled until the token is installed and autom
 public releases from main are intended. The foundation and owner sign-in code
 are merged into `main` and deployed manually. See deployment.md for the version
 and remaining owner activation step.
+
+## D1 sessions and migrations
+
+Database `github-nanny` is created in WNAM and bound as `DB` in source control.
+The first migration stores only owner session hashes and lifetime metadata.
+It is already applied to the new hosted database; the persistent-session Worker
+still needs CI/deployment. No paid plan was enabled.
+
+For local development with real owner sign-in, apply the local schema first:
+
+```sh
+npx wrangler d1 migrations apply DB --local --config wrangler.jsonc
+```
+
+Before deploying approved code, apply hosted migrations:
+
+```sh
+npx wrangler d1 migrations apply DB --remote --config wrangler.jsonc
+```
+
+`npm run deploy` builds, applies hosted migrations, then deploys. The gated
+Actions deployment also applies migrations after its checks and before upload.
+Its Cloudflare token now needs D1 edit access for migration queries as well as
+deployment access to the existing Worker. Keep automatic deployment disabled
+until those separate CI credentials are configured.
+
+After this update, legacy stateless cookies are rejected. Sign in once again;
+single-device logout revokes copied cookies, and **Sign out all devices** revokes
+all sessions for the owner. A database failure cannot authorize a request from
+the signed cookie alone. `npm run types` now includes Wrangler runtime types for
+D1; the generated file is marked as generated in Git and must not be hand-edited.
 
 ## GitHub App setup (milestone 2)
 

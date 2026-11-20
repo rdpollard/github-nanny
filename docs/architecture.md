@@ -15,8 +15,8 @@ flowchart LR
 
 The current implementation contains the PWA shell, honest unknown-status API,
 a pure idle-decision function, owner authorization handlers, and an owner-only
-repository inventory check. D1, scheduled
-handlers, webhook ingestion and push delivery are planned, not active. See
+repository inventory check. D1 session storage is implemented and awaiting
+deployment; scheduled handlers, webhook ingestion and push remain planned. See
 roadmap.md for boundaries and github-connection.md for the sign-in contract.
 
 ## Frontend and framework choice
@@ -59,13 +59,32 @@ platform logs/traces and invocation logs are disabled to avoid retaining OAuth
 authorization codes. Authentication application logs contain only a fixed
 failure event name and an allowlisted outcome, never raw provider error data.
 
-Logout clears the browser session cookie; signed cookies already copied to
-another client are not centrally revoked and expire within eight hours. Rotating
-SESSION_SECRET or changing the configured owner invalidates existing sessions.
-Server-side session revocation can be introduced with D1 before more powerful
-owner operations are added. No public mutation endpoints are enabled. The new
+The persistent-session change issues an additional random session ID in the
+signed, HttpOnly cookie and stores only its SHA-256 hash and owner/login/lifetime
+metadata in D1. Every owner request verifies both the cookie and the database
+record. Reads start with `first-primary` so a recent revocation cannot be hidden
+by a stale replica. Expired records are removed during successful session creation
+in the same D1 batch as the insert.
+
+Single-device logout removes that session record; all-device logout removes all
+records for the configured owner. Copies of those cookies stop authorizing
+requests. Both operations require POST and an exact matching browser Origin.
+Missing storage, failed reads/writes and legacy cookies without a stored session
+fail closed. After deployment, existing stateless sessions must sign in again.
+Rotating SESSION_SECRET or changing owner ID also invalidates existing cookies.
+Monitoring disconnect remains a later operation. No public mutation endpoints
+are enabled. The
 repository inventory is a read operation and does not persist configuration or
 start monitoring.
+
+## Monitoring visibility policy
+
+The owner verified 21 accessible repositories and chose to monitor only the four
+public repositories: github-nanny, locus-tether, verify, and the required
+stormbots/Tactics-Strategy-Dev-Environments repository. The 17 private
+repositories are access-inventory metadata only and must not receive Actions
+queries or contribute to busy/idle, the activity latch, or notifications. The
+future persisted monitoring scope must enforce this before ingestion and scans.
 
 ## Owner repository inventory
 

@@ -113,6 +113,18 @@ const path = require('node:path');
     await page.getByRole('link', { name: 'stormbots/Tactics-Strategy-Dev-Environments', exact: true }).waitFor();
     assert.equal(await page.getByRole('alert').count(), 0);
     assert.equal(discoveryRequests, 3);
+    let logoutAllRequests = 0;
+    await page.route(`${origin}/api/auth/logout-all`, route => {
+      logoutAllRequests++;
+      assert.equal(route.request().method(), 'POST');
+      return route.fulfill({ json: { ok: true } });
+    });
+    await page.getByRole('button', { name: 'Sign out all devices', exact: true }).click();
+    await page.getByRole('link', { name: 'Sign in with GitHub', exact: true }).waitFor();
+    assert.equal(await page.getByRole('button', { name: 'Check repository access', exact: true }).count(), 0);
+    assert.equal(await page.getByRole('link', { name: 'stormbots/Tactics-Strategy-Dev-Environments', exact: true }).count(), 0);
+    assert.equal(logoutAllRequests, 1);
+    await page.unroute(`${origin}/api/auth/logout-all`);
     await page.unroute(`${origin}/api/auth/session`);
     await page.unroute(`${origin}/api/admin/repositories`);
     await page.getByRole('link', { name: 'Back to dashboard', exact: true }).click();

@@ -19,6 +19,8 @@ This is the foundation and owner connection code, not a live monitor yet. It inc
 - A tested idle-decision function, GitHub Actions CI, and deployment workflow.
 - GitHub App owner sign-in with PKCE and secure, signed session cookies. Sign-in
   remains disabled until the GitHub App settings and secrets are configured.
+- Persistent D1 owner sessions and all-device sign-out are implemented and
+  awaiting CI/deployment. Existing sessions will need one fresh sign-in.
 - Owner connection settings at `/settings`; this does not yet authorize live
   repository monitoring or change the public unknown-status response.
 - An owner-only repository access check with GitHub App authentication,
@@ -30,8 +32,9 @@ are the next milestones. The decision function is not
 wired to a live ingestion pipeline yet. The owner connection code is deployed;
 its secrets are installed, and real owner sign-in is verified. Repository access
 checking is deployed and the personal inventory is verified. The organization
-extension still needs CI/deployment and a `stormbots` installation for the
-required repository. It does not start live monitoring.
+extension is deployed and verified for the required `stormbots` repository.
+The owner selected only the four public repositories for monitoring; the 17
+accessible private repositories are excluded. Live monitoring is not started.
 
 ## Local development
 
