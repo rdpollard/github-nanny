@@ -1,5 +1,42 @@
 # Deployment status
 
+## Durable monitoring state preparation
+
+The owner verified a live empty Actions check across all four public repositories
+and confirmed requested, waiting and pending runs block idle alongside queued
+and running. Live nonempty results are not yet verified.
+
+Migration `0003_monitor_state.sql` and the durable-state change are implemented,
+not deployed. Manual checks will persist sanitized current-run observations and
+internal stabilization state. Scope save/disconnect atomically clear that state
+and pending notices. Notification creation defaults off with no activation API;
+public status stays unknown/unconnected. Continuous monitoring, signed events,
+notification delivery and push remain inactive.
+
+Local validation passed: `npm run check` with 37 unit tests and 26 runtime/D1
+tests, browser smoke with system Chromium, local migration application and
+Wrangler deployment dry run. New cases cover concurrent idle commits, quiet
+interval timing and expiry, outage recovery without losing an epoch, atomic
+rollback, scope cleanup, field sanitization, disabled production notices and
+scope changes made by the previous Worker during migration/upload. Hosted
+migration/deployment remain pending CI.
+
+## Manual Actions check deployment
+
+After main CI passed, commit `5b47a32111e43125e0253ae3fa4ec452aa667fa2`
+was deployed manually as Cloudflare version
+`6c73db6b-d1ad-443f-9c4c-bdac91bf496f`. Wrangler confirmed no pending
+migrations. Existing scope/session data, Worker secrets and configuration were
+preserved. Automatic GitHub deployment remains disabled; its workflow was skipped.
+
+HTTPS checks confirmed the manual Actions button and empty-check wording are
+deployed, POST requires owner sign-in (401), GET is rejected (405), auth/status
+responses are uncached, health is OK and sign-in remains configured. Public
+status is still unknown/unconnected. No Actions request was made by these
+unauthenticated probes. The owner subsequently verified an empty check covering
+all four public repositories with real GitHub data.
+Continuous monitoring, webhook ingestion and push remain inactive.
+
 ## Manual Actions check preparation
 
 The owner confirmed saved-scope setup, persistence across refresh, disconnect
@@ -9,7 +46,7 @@ The next change adds an owner-triggered Actions observation with complete
 unfinished-status pagination, visibility/access revalidation, request limits,
 attempt-aware run links and scope revision fencing. It does not persist run
 state or assert global idle. No new database migration, permission or secret
-is required. The code is not deployed yet; public status remains unknown and
+is required. The code is deployed as recorded above; public status remains unknown and
 webhooks, scheduled checks and push remain inactive.
 
 Local validation passed: `npm run check` (35 unit tests and 19 workerd/D1
@@ -17,8 +54,8 @@ integration tests), browser smoke with system Chromium, and Wrangler deployment
 dry run. Coverage includes 101 active runs across pages, all five statuses,
 simultaneous workflows and attempts, private visibility changes, provider limits,
 malformed/truncated data, and disconnect during a scan. No real Actions request
-has been made by the new handler yet; real installation validation follows CI
-and deployment.
+has been made by the engineer through the new handler; real installation
+validation remains an owner browser check after deployment.
 
 ## Saved public scope deployment
 

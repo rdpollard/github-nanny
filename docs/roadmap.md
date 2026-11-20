@@ -25,7 +25,7 @@
 - [x] Implement D1-backed owner session revocation, including all-device sign-out.
 - [x] Deploy persistent sessions and verify real browser sign-in/sign-out.
 - [x] Add saved-scope disconnect and fence concurrent/in-flight scope saves.
-- [ ] Extend disconnect to invalidate future scans, activity and pending notices.
+- [x] Extend disconnect to invalidate scans, activity and pending notices atomically.
 - [x] Create D1 database and add the first session migration.
 - [x] Add D1 migrations and persist verified public installation/repository scope.
 - [x] Deploy and verify saved-scope setup/disconnect in the owner's browser.
@@ -38,18 +38,21 @@
 - [x] Confirm public-only monitoring: four public repositories; 17 private repos excluded.
 - [x] Implement owner-triggered Actions observation across all five unfinished
       statuses, with pagination, scope/visibility checks and per-run attempts.
-- [ ] Deploy and verify the manual Actions check with the owner's real installations.
+- [x] Deploy and verify an empty manual Actions check across the four real public repositories.
+- [ ] Verify nonempty live results and run links; mocked integration tests cover these now.
 - [ ] Implement signature-verified webhooks, deduplication and event ordering.
 - [ ] Persist all run IDs/attempts and handle webhook ordering; manual scans
       already test simultaneous runs of the same workflow.
 - [ ] Provide active-run API with scope/freshness and access failure handling.
-- [ ] Confirm waiting/requested/pending policy and any coverage fallback.
+- [x] Confirm waiting/requested/pending block idle alongside queued/running.
+- [ ] Resolve any coverage fallback outside the configured accounts.
 
 ## 3. Confirmed global idle
 
 - [ ] Add hosted scheduled reconciliation with request/CPU/rate-limit budgets.
-- [ ] Stabilize apparent idle, invalidate on activity, persist state atomically.
-- [ ] Persist an outbox notice only once per idle epoch.
+- [x] Persist scan state atomically, stabilize two complete empty scans and reject stale revisions.
+- [x] Implement one atomic outbox entry per idle epoch; production creation remains disabled.
+- [ ] Add signed activity ingestion and activate continuous monitoring/outbox readiness.
 - [ ] Test duplicate/late events, pagination, restarts and loss of repository access.
 
 ## 4. Push and PWA readiness

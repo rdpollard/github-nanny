@@ -166,7 +166,8 @@ must revalidate visibility and access rather than trust this saved snapshot.
 
 ## Manually check Actions
 
-The next change adds **Check Actions now** in settings; it awaits CI/deployment.
+**Check Actions now** is deployed and owner-verified with an empty result across
+the four public repositories. Nonempty live results still need verification.
 The button requires a saved scope and performs a fresh installation/access check,
 then reads all pages of queued, running, requested, waiting and pending runs in
 those public repositories. It does not limit branches, actors or event types.
@@ -175,8 +176,10 @@ are needed: Actions read and Metadata read are already configured.
 
 No Actions request runs automatically on page load, scope save or reload. The
 result is an owner-only snapshot with a check time, not a public monitoring feed.
+The durable-state change persists sanitized observations and internal quiet
+period state but leaves notification creation disabled. It awaits CI/deployment.
 No partial result is shown after an error, lost access or scope change. An empty
-check does not confirm global idle or send a notification. Private repository
+check does not confirm public global idle or send a notification. Private repository
 activity is excluded. Webhooks and scheduled checks remain inactive.
 
 ## Configure the Worker

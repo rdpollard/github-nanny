@@ -38,9 +38,8 @@ An owner-only access inventory/count does not authorize private Actions queries.
 Changes to the monitored set must be deliberate; an unexpectedly private
 required repository must become a coverage gap rather than expose its activity.
 
-- GitHub has nonterminal states beyond queued/running, including requested,
-  pending, and waiting for approval. Proposed conservative default: these block
-  idle too, since the workflow is unfinished. Confirm that policy before launch.
+- The owner confirmed that requested, pending, and waiting for approval count
+  as unfinished alongside queued/running. All five states block idle.
 - Owner installation covers owned repositories; organization/collaborator repos
   may need separate installation or a polling fallback. A coverage gap must be
   visible, not silently treated as inactivity. Sign-in alone cannot grant every

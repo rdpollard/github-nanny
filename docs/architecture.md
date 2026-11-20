@@ -17,8 +17,9 @@ The current implementation contains the PWA shell, honest unknown-status API,
 a pure idle-decision function, owner authorization handlers, and an owner-only
 repository inventory check. D1 session storage is deployed and verified. Saved
 public scope and disconnect handlers are deployed and owner-verified. A manual
-owner Actions check is implemented and awaiting CI/deployment; scheduled
-handlers, webhook ingestion and push remain planned. See
+owner Actions check is deployed and owner-verified for an empty scan. Durable
+monitor state and atomic outbox support are implemented, awaiting CI/deployment;
+scheduled handlers, webhook ingestion and push remain planned. See
 roadmap.md for boundaries and github-connection.md for the sign-in contract.
 
 ## Frontend and framework choice
@@ -122,9 +123,9 @@ scope on a failed operation and offers an explicit reload.
 
 Saved scope is preparation only: public status remains unknown/unconnected.
 Only an explicit owner Actions check can query run status; there is no webhook
-handler, scheduled scan or notification. Future scan
-results and notification work must also be fenced by this scope revision;
-disconnect must additionally invalidate/clear that future state before launch.
+handler, scheduled scan or notification delivery. Scan results are fenced by
+both the scope revision and the monitor revision. Scope replacement/disconnect
+atomically resets monitor state and removes pending outbox work.
 
 ## Manual Actions observation
 
@@ -168,16 +169,19 @@ the revision and rejects the in-flight result. Detected access/visibility
 changes, rate limits, provider errors, deadlines, oversized/malformed responses
 or incomplete pages return fixed errors with no partial runs. Visibility can
 still change immediately after the final check; distributed reads are not an
-atomic GitHub snapshot. This owner-only observation is not published or stored.
+atomic GitHub snapshot. This owner-only observation is not published. The
+durable-state change stores only its sanitized run fields after successful
+monitor/scope revision checks, with a 256-KiB bound on the complete run document.
+Oversized observations fail rather than persist a truncated subset.
 
 The response contains scan start/end time, scope revision, repository count and
 explicit unfinished runs with their attempt numbers. A failed retry clears the
 prior UI observation; changing/reloading scope and sign-out also clear it.
-An empty check explicitly does not assert global idle. No activity latch, idle
-epoch or outbox is updated, and `/api/status` remains unknown/unconnected. The
-conservative treatment of waiting/requested/pending still needs owner policy
-confirmation before launch. Durable run tracking, webhook ordering, stabilized
-idle decisions and continuous reconciliation remain subsequent milestones.
+An empty check explicitly does not assert public global idle. The internal
+activity latch and quiet-period state are now persisted, while `/api/status`
+remains unknown/unconnected. The owner confirmed all five unfinished statuses
+block idle. Webhook ordering and continuous reconciliation remain subsequent
+milestones; a successful live empty scan does not verify live nonempty handling.
 
 ## Owner repository inventory
 
@@ -230,9 +234,9 @@ labels the missing accounts and cannot claim configured access is complete.
 
 ## Idle decision and races
 
-`worker/monitor.ts` contains a pure decision function with four state fields:
-phase, activityObserved, revision, and idleEpoch. It does not call GitHub, commit
-state, or send push itself.
+`worker/monitor.ts` contains the primitive idle reducer and a stabilization
+wrapper with emptySince and lastCompleteAt alongside phase, activityObserved,
+revision and idleEpoch. It does not call GitHub, commit state or send push itself.
 
 Fresh activity increments the revision and arms a future notice. Start a scan
 with that revision; query the entire monitoring scope using complete pagination
@@ -243,11 +247,47 @@ reconciliation after a brief stabilization interval to accommodate chained
 workflows and delayed events before launch. No distributed scan can guarantee
 that GitHub will not start a new run immediately afterward.
 
-The future persistence layer must atomically compare-and-swap the revision,
-update monitor state, and enqueue an outbox notice with unique idleEpoch in a D1
-transaction/batch. This prevents two Workers from creating separate notices for
-the same transition. Webhook delivery IDs need a unique constraint. Attempts and
-out-of-order events must not reopen a completed run incorrectly.
+`MonitorStore` takes a token before scanning, using a primary D1 read joined to
+the exact prepared scope/configuration. A successful complete scan atomically
+compares both revisions, saves sanitized current runs and monitor state, and
+conditionally inserts one outbox row keyed by the global idle epoch in a D1
+batch. A unique random commit marker ensures follow-up SQL cannot act on another
+Worker's successful update when its own compare-and-swap lost. An outbox failure
+rolls back the state change. Competing or replayed scan tokens cannot both win.
+
+The first empty check records a candidate and phase unknown. Only a second
+complete scan that STARTED at least ten seconds after the first empty check
+finished can stabilize idle; a long first scan is insufficient. A candidate
+older than two minutes expires and requires a new pair of scans. Initial idle is
+silent. Observed active runs arm a later epoch; another active run clears the
+candidate and cancels an unsent old idle notice. A failed scan breaks the quiet
+interval, clears run details and sets unknown while retaining the activity
+latch. Pending notices are paused while unknown, so coverage recovery can
+release the same epoch rather than lose it. A future dispatcher must require
+enabled notices, current scope/epoch, fresh complete state and phase idle before
+sending, and revalidate visibility of the relevant link.
+
+Migration 0003 creates monitor_state and idle_outbox, initialized against the
+existing scope revision. notice_enabled defaults to zero and has no public or
+owner API to enable it in this milestone. No outbox rows can be created by
+production-default manual checks, even after internal stabilization. Tests
+enable it only in isolated D1 fixtures to verify the real transactional path.
+Activation must reset state with fresh coverage after webhook/reconciliation
+integration; enabling this flag alone is not a supported rollout operation.
+Internal phase values are not exposed as public current status or notifications.
+
+Scope save/disconnect batches reset monitor confidence, activity, runs, quiet
+candidate, link and notification readiness and remove pending old-scope notices
+in the same transaction. Epochs remain monotonic and are never reused. This also
+fences already-running scans. A missing migration or failed cleanup rolls back
+the scope change and fails closed. No credentials enter the stored run document.
+If the previous deployed Worker saves scope between migration and code upload,
+the first new scan repairs only the scope-revision mismatch, resetting confidence
+and notice readiness and clearing obsolete outbox work before taking its token.
+
+Webhook delivery IDs still need a unique constraint. Attempts and out-of-order
+events must not reopen a completed run incorrectly. This change stores complete
+scan observations, not a webhook event log or durable per-event ordering ledger.
 
 Push delivery consumes the outbox with per-device delivery tracking and retry
 backoff. A notice is not marked sent before a push service accepts it. An ambiguous
@@ -261,11 +301,11 @@ once display on all devices.
 | --- | --- |
 | Saved public scope (implemented) | Atomic account/installation and public repository document, configuration key, revision, verification time |
 | Repository monitoring state | Revalidated visibility, current access health and successful scan time |
-| Runs/attempts | Every unfinished run, status, run URL, event ordering metadata |
+| Runs/attempts (scan persistence implemented) | Sanitized complete active-run document; per-event ordering still planned |
 | Webhook deliveries | Idempotency and processing result with bounded retention |
-| Monitor state | Phase, revision, activity latch, epoch, last complete scan |
+| Monitor state (implemented) | Scope/revision fencing, phase, activity latch, epoch, quiet candidate, last complete scan, disabled notice readiness |
 | Push subscriptions | Private endpoint and keys for each authorized device |
-| Notification outbox | Stable epoch, relevant completed-run links, retry state |
+| Notification outbox (atomic creation implemented, disabled) | Stable epoch and relevant run link; delivery/retry state still planned |
 
 Internal short retention for notice links/deduplication does not imply a history
 view. Avoid retaining workflow logs or full webhook payloads unnecessarily.
@@ -293,3 +333,4 @@ the complete scan generation finishes. Unknown is preferable to false idle.
 - https://docs.github.com/en/rest/actions/workflow-runs
 - https://docs.github.com/en/webhooks/webhook-events-and-payloads
 - https://docs.github.com/en/apps/using-github-apps/authorizing-github-apps
+- https://developers.cloudflare.com/d1/worker-api/d1-database/
