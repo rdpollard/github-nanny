@@ -13,7 +13,7 @@
 ## 2. GitHub connection and live dashboard
 
 - [x] Register GitHub App `gh-nanny` and configure its public Client ID and slug.
-- [ ] Verify registered permissions/callback and confirm owner/install scope.
+- [x] Verify registered personal-account permissions/callback and owner installation.
 - [x] Owner reports App installed, read permissions saved and All repositories selected.
 - [x] Implement owner-only GitHub App authorization, secure signed session
       cookies, browser-bound state and S256 PKCE. Provider identity tokens are
@@ -25,7 +25,10 @@
 - [ ] Add server-side revocation/disconnect handling before broader owner writes.
 - [ ] Add D1 migrations and persist verified installation/repository inventories.
 - [x] Implement explicit owner-only installation/repository access check with pagination.
-- [ ] Deploy the access check and verify the real App key and repository inventory.
+- [x] Deploy the owner-only repository access check after CI.
+- [x] Verify the real App key and personal repository inventory in the owner's browser.
+- [x] Implement allowlisted organization inventories and required public repository checks.
+- [ ] Enable and verify the separate `stormbots` installation and required repository.
 - [ ] Implement signature-verified webhooks, deduplication and event ordering.
 - [ ] Track all run IDs/attempts; test simultaneous runs of the same workflow.
 - [ ] Provide active-run API with scope/freshness and access failure handling.

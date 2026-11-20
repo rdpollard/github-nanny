@@ -1,13 +1,39 @@
 # Deployment status
 
+## Organization access preparation
+
+The owner confirmed real personal repository access for `github-nanny`,
+`locus-tether`, and `verify`. The required public repository
+`stormbots/Tactics-Strategy-Dev-Environments` is absent because the deployed
+inventory only checks the personal installation.
+
+The organization extension is implemented and tested but not deployed. It adds
+the explicit `stormbots` scope and required-repository check. The GitHub App must
+allow other-account installation and have a separate organization installation
+including the required repository. That organization installation is not yet
+verified; personal success alone is insufficient for the declared requirement.
+
+## Repository access check deployment
+
+After main CI passed, commit `9df27529dcf48899f39dc59313fc47f7af09288f`
+was deployed as Cloudflare version `1fc2874e-9877-4994-91ec-fb2a6b34ae2c`.
+The existing Worker secrets and public configuration were preserved.
+
+HTTPS checks confirmed the deployed settings bundle contains **Check repository
+access**, `/api/admin/repositories` rejects an unauthenticated request with 401
+and no-store caching, sign-in remains configured, and health is OK. Public
+monitor status remains unknown/unconnected. The owner's authenticated check
+verified the App key, personal installation permissions and the three personal
+repositories. Organization access needs the next extension and separate setup.
+
 ## Repository discovery preparation
 
 The owner reports saving the App's read permissions, All repositories selection,
 and private key directly in Cloudflare. Wrangler's secret-name listing confirms
 `GITHUB_APP_PRIVATE_KEY`, `GITHUB_CLIENT_SECRET` and `SESSION_SECRET` are present.
-Their values were not read. The new owner-only access check is implemented and
-tested locally but is not deployed or verified with the actual installation yet.
-The live Worker remains the owner sign-in fix version recorded below.
+Their values were not read. The owner-only access check passed local and GitHub
+CI checks and is deployed as recorded above. The owner verified its personal
+inventory. Organization verification is still pending.
 
 ## Owner sign-in fix deployment
 

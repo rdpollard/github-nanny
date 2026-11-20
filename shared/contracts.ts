@@ -17,7 +17,8 @@ export type SignInOutcome = keyof typeof SIGN_IN_MESSAGES;
 
 export const DISCOVERY_MESSAGES = {
   setup: 'The GitHub App private key is missing or invalid. Check the Worker secret.',
-  not_installed: 'The GitHub App is not installed on the configured owner account.',
+  not_installed: 'The GitHub App is not installed on this account, or the installation still needs approval.',
+  configuration: 'The configured organization scope is invalid. Check the Worker configuration.',
   permissions: 'Check the installation: it must be active with Actions and Metadata read-only access.',
   authentication: 'GitHub rejected App authentication. Check that the private key belongs to this App.',
   rate_limited: 'GitHub has limited requests. Wait before checking repository access again.',
@@ -34,6 +35,31 @@ export interface RepositoryDiscovery {
   repositoryCount: number;
   privateRepositoryCount: number;
   repositories: { id: number; name: string; url: string }[];
+}
+
+export interface GitHubAccountScope {
+  id: string;
+  login: string;
+  kind: 'User' | 'Organization';
+  requiredRepositories: string[];
+  requiresAll: boolean;
+}
+
+export interface RepositoryAccountCheck {
+  account: GitHubAccountScope;
+  inventory: RepositoryDiscovery | null;
+  reason: DiscoveryFailure | null;
+  missingRepositories: string[];
+  complete: boolean;
+}
+
+export interface RepositoryAccessReport {
+  checkedAt: string;
+  complete: boolean;
+  accounts: RepositoryAccountCheck[];
+  repositoryCount: number;
+  privateRepositoryCount: number;
+  repositories: RepositoryDiscovery['repositories'];
 }
 
 export interface OwnerSession {

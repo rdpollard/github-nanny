@@ -1,8 +1,10 @@
 # GitHub owner connection
 
-Owner identity authorization is deployed. Owner-only repository discovery is
-implemented and awaiting CI/deployment. Actions webhooks, D1 and notifications
-are separate upcoming changes. A successful
+Owner identity authorization and personal-account repository discovery are
+deployed. The owner verified access to `github-nanny`, `locus-tether`, and
+`verify`. Organization support for the required `stormbots` repository is
+implemented but needs CI/deployment and a separate installation. Actions
+webhooks, D1 and notifications are separate upcoming changes. A successful
 sign-in does not imply that live monitoring is connected. Public status remains
 unknown until that pipeline is implemented and synchronized.
 
@@ -12,8 +14,8 @@ The real sign-in attempt failed because Workers rejects the fetch redirect mode
 used by the exchange. The fix passed CI and is deployed. The owner completed
 real browser authorization and confirmed **Signed in as rdpollard**. The owner
 installed the App and reports saving Actions/Metadata read access and All
-repositories. Server-side installation verification and repository discovery
-are still pending.
+repositories. The personal installation is verified; the required organization
+installation is not yet verified.
 
 ## Registered app
 
@@ -23,8 +25,8 @@ The owner registered `gh-nanny` and supplied these public identifiers:
 - Owner settings: https://github.com/settings/apps/gh-nanny
 - Client ID: `Iv23liTv0KKizj08FARz`
 
-The Client ID and slug are configured in `wrangler.jsonc`. The registration's
-permissions and callback settings still need verification during activation.
+The Client ID and slug are configured in `wrangler.jsonc`. The personal-account
+permissions and callback work. Organization access still needs verification.
 No client secret or private key has been sent through chat or committed.
 
 ## Register the GitHub App
@@ -43,7 +45,7 @@ behalf. Use these settings:
 | Expiring user access tokens | Keep enabled |
 | Device flow | Not required |
 | Setup URL | `https://github-nanny.github-nanny.workers.dev/settings` |
-| Installation access | Only this account (private app) |
+| Installation access | Public App (Any account), required for the separate organization installation; backend accounts remain allowlisted |
 | Repository permissions | Actions: read-only; Metadata: read-only |
 | Webhooks | Leave inactive until the ingestion handler is implemented |
 
@@ -68,10 +70,10 @@ will be needed for the subsequent installation/tracking milestone, not this one.
 
 ## Prepare installation authentication
 
-Owner identity sign-in is verified. The App was initially installed without
-repository permissions; the owner then reports saving Actions: read, Metadata:
-read and All repositories. The backend must still verify the actual installation
-and its access through GitHub before claiming coverage.
+Owner identity sign-in and the personal installation are verified. The App was
+initially installed without repository permissions; the owner then saved Actions:
+read, Metadata: read and All repositories. Organization access is a separate
+installation and verification step.
 
 GitHub App API authentication requires its own private key, separate from the
 OAuth client secret already installed:
@@ -88,22 +90,52 @@ OAuth client secret already installed:
 The owner reports saving `GITHUB_APP_PRIVATE_KEY`; Wrangler confirms that secret
 name is present without reading its value. The new backend accepts GitHub's
 PKCS#1 PEM keys and unencrypted PKCS#8, with signing tested in workerd. The real
-key and installation have not been verified by this code yet. There is still no
+key and personal installation are now verified. There is still no
 database, webhook ingestion or scheduler.
 
 ## Check repository access after deployment
 
 1. Sign in on `/settings` and select **Check repository access**.
-2. The backend verifies the owner installation and read permissions, requests a
-   short-lived installation token, and reads every repository page.
-3. Confirm the public repository list/count and **All repositories** selection.
+2. The backend verifies each configured installation and read permissions,
+   requests separate short-lived tokens, and reads every repository page.
+3. Confirm the personal account uses **All repositories**, and `stormbots` lists
+   the required `Tactics-Strategy-Dev-Environments` repository.
    Private names are omitted; a private count is visible only to the owner.
 
-The result covers the personal-account installation, not every collaborator
-repository the user can access elsewhere. Selected installations are clearly
-labeled. Changing, truncated or over-budget inventories are rejected rather
-than displayed as complete. The operation is limited to 20 repository pages of
-100 items; larger accounts will need the planned batch/reconciliation pipeline.
+The result covers only configured accounts, not every collaborator repository
+the user can access elsewhere. A selected organization installation is sufficient
+when it includes every configured required public repository. A selected personal
+installation remains a coverage gap. Missing installations or required
+repositories keep the overall result incomplete even if the personal inventory
+succeeds. Changing, truncated or over-budget inventories are rejected for that
+account. There is a shared 40-request budget and a 20-page limit per account;
+larger scopes will need the planned batch/reconciliation pipeline.
+
+## Required stormbots organization access
+
+The production scope requires `stormbots/Tactics-Strategy-Dev-Environments`.
+The personal installation cannot grant access or webhook coverage for that
+organization's repositories. Use a separate organization installation:
+
+1. Open https://github.com/settings/apps/gh-nanny, choose **Advanced**, and
+   **Make public** if the App is private. This enables installation on other
+   accounts; Marketplace publication is optional. Keep owner sign-in restricted
+   to the existing immutable owner ID.
+2. Open https://github.com/apps/gh-nanny/installations/new and choose `stormbots`.
+3. Select **Only select repositories**, including
+   `Tactics-Strategy-Dev-Environments`, with Actions: read and Metadata: read.
+   An organization owner may need to approve the installation under its policy.
+4. After the organization-support code is deployed, repeat **Check repository
+   access**. Both configured accounts must be verified and the required
+   repository must appear before calling the configured scope complete.
+
+`GITHUB_ORGANIZATIONS` is a source-controlled JSON list of organization IDs,
+logins, and required public repository names. It currently contains organization
+ID `5925283`, login `stormbots`, and the required name above. Up to four
+organizations are supported, with at most 50 required names each. Responses are
+validated against immutable IDs. Other accounts installing the public App are
+ignored, and a browser query cannot expand this list. No new key or OAuth
+credentials are required solely for this additional installation.
 
 The UI makes no periodic requests to this endpoint. No Actions run or job status
 is queried, and no monitor configuration is written. A failed retry clears the
@@ -118,6 +150,8 @@ Public settings in `wrangler.jsonc`:
 - `GITHUB_OWNER_ID`: immutable allowed owner ID; already set for this account.
 - `GITHUB_CLIENT_ID`: registered app's public Client ID; already set.
 - `GITHUB_APP_SLUG`: registered app slug `gh-nanny`; already set.
+- `GITHUB_ORGANIZATIONS`: explicit organization allowlist and required public
+  repository names; already set for `stormbots` in source control.
 
 Worker secrets (never source, browser storage or VITE_* variables):
 
@@ -228,3 +262,4 @@ incompatibility again.
 - https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app
 - https://docs.github.com/en/rest/apps/apps#get-a-user-installation-for-the-authenticated-app
 - https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
+- https://docs.github.com/en/apps/maintaining-github-apps/modifying-a-github-app-registration#changing-the-visibility-of-a-github-app

@@ -1,7 +1,8 @@
-import type { DiscoveryFailure, RepositoryDiscovery } from '../../shared/contracts.ts';
+import type { DiscoveryFailure, GitHubAccountScope, RepositoryAccessReport, RepositoryAccountCheck, RepositoryDiscovery } from '../../shared/contracts.ts';
 import type { AuthConfig, Bindings } from '../auth/config.ts';
 import type { Fetcher } from '../auth/github.ts';
 import { appJwt } from './jwt.ts';
+import { repositoryScopes } from './scopes.ts';
 
 export class DiscoveryError extends Error {
   readonly reason: DiscoveryFailure;
@@ -50,13 +51,14 @@ async function json(response: Response): Promise<Record<string, unknown>> {
   return result;
 }
 
-// This returns an inventory of this personal-account installation, never a
-// statement about all repositories a user might access through other accounts.
+// Every account must be chosen by server configuration and checked by immutable
+// ID. A public App installation elsewhere does not expand the configured scope.
 export async function discoverRepositories(env: Bindings, config: AuthConfig, login: string, options: {
-  fetcher?: Fetcher; now?: number;
+  fetcher?: Fetcher; now?: number; account?: GitHubAccountScope; budget?: { remaining: number };
 } = {}): Promise<RepositoryDiscovery> {
   const fetcher = options.fetcher ?? fetch;
   const now = options.now ?? Date.now();
+  const account = options.account ?? { id: config.ownerId, login, kind: 'User' };
   let jwt: string;
   try { jwt = await appJwt(config.clientId, env.GITHUB_APP_PRIVATE_KEY ?? '', now); }
   catch { throw new DiscoveryError('setup'); }
@@ -66,6 +68,7 @@ export async function discoverRepositories(env: Bindings, config: AuthConfig, lo
   async function request(path: string, token: string, options: {
     body?: object; missing?: DiscoveryFailure;
   } = {}) {
+    if (budget.remaining-- <= 0) throw new DiscoveryError('incomplete');
     const response = await fetcher(`https://api.github.com${path}`, {
       method: options.body ? 'POST' : 'GET', redirect: 'manual', signal: AbortSignal.timeout(10_000),
       headers: {
@@ -86,11 +89,13 @@ export async function discoverRepositories(env: Bindings, config: AuthConfig, lo
     return { data: await json(response), link: response.headers.get('Link') };
   }
 
+  const budget = options.budget ?? { remaining: 22 };
+
   try {
     if (!/^[A-Za-z0-9-]{1,39}$/.test(login)) throw new DiscoveryError('unavailable');
-    const { data: installation } = await request(`/users/${encodeURIComponent(login)}/installation`, jwt, { missing: 'not_installed' });
+    const { data: installation } = await request(`/${account.kind === 'Organization' ? 'orgs' : 'users'}/${encodeURIComponent(login)}/installation`, jwt, { missing: 'not_installed' });
     if (!id(installation.id) || !record(installation.account) || !id(installation.account.id) ||
-      String(installation.account.id) !== config.ownerId || installation.account.type !== 'User' ||
+      String(installation.account.id) !== account.id || installation.account.type !== account.kind ||
       (installation.client_id !== undefined && installation.client_id !== config.clientId) ||
       (config.appSlug && installation.app_slug !== config.appSlug)) throw new DiscoveryError('authentication');
     if (installation.suspended_at !== null || !readPermissions(installation.permissions)) throw new DiscoveryError('permissions');
@@ -119,7 +124,7 @@ export async function discoverRepositories(env: Bindings, config: AuthConfig, lo
         if (!record(repository) || !id(repository.id) || seen.has(repository.id) ||
           typeof repository.name !== 'string' || !/^[A-Za-z0-9_.-]{1,100}$/.test(repository.name) ||
           typeof repository.private !== 'boolean' || !record(repository.owner) ||
-          !id(repository.owner.id) || String(repository.owner.id) !== config.ownerId || typeof repository.owner.login !== 'string' ||
+          !id(repository.owner.id) || String(repository.owner.id) !== account.id || typeof repository.owner.login !== 'string' ||
           !/^[A-Za-z0-9-]{1,39}$/.test(repository.owner.login)) throw new DiscoveryError('incomplete');
         seen.add(repository.id);
         if (repository.private) privateRepositoryCount++;
@@ -141,4 +146,39 @@ export async function discoverRepositories(env: Bindings, config: AuthConfig, lo
     if (error instanceof DiscoveryError) throw error;
     throw new DiscoveryError('unavailable');
   }
+}
+
+export async function checkRepositoryAccess(env: Bindings, config: AuthConfig, login: string, options: {
+  fetcher?: Fetcher; now?: number;
+} = {}): Promise<RepositoryAccessReport> {
+  let scopes: GitHubAccountScope[];
+  try { scopes = repositoryScopes(env, config, login); }
+  catch { throw new DiscoveryError('configuration'); }
+  const budget = { remaining: 40 };
+  const accounts: RepositoryAccountCheck[] = [];
+  const repositoryIds = new Set<number>();
+  for (const account of scopes) {
+    try {
+      const inventory = await discoverRepositories(env, config, account.login, { ...options, account, budget });
+      if (inventory.repositories.some(repository => repositoryIds.has(repository.id))) throw new DiscoveryError('incomplete');
+      for (const repository of inventory.repositories) repositoryIds.add(repository.id);
+      // Names come from the server's explicit requirements, never from a caller
+      // query. A required private repository is deliberately not publishable.
+      const names = new Set(inventory.repositories.map(repository => repository.name.split('/')[1].toLowerCase()));
+      const missingRepositories = account.requiredRepositories.filter(name => !names.has(name.toLowerCase()));
+      accounts.push({ account, inventory, reason: null, missingRepositories,
+        complete: missingRepositories.length === 0 && (!account.requiresAll || inventory.selection === 'all') });
+    } catch (error) {
+      const reason = error instanceof DiscoveryError ? error.reason : 'unavailable';
+      if (reason === 'setup') throw new DiscoveryError(reason);
+      accounts.push({ account, inventory: null, reason, missingRepositories: account.requiredRepositories, complete: false });
+    }
+  }
+  const inventories = accounts.flatMap(account => account.inventory ? [account.inventory] : []);
+  return {
+    checkedAt: new Date(options.now ?? Date.now()).toISOString(), complete: accounts.every(account => account.complete), accounts,
+    repositoryCount: inventories.reduce((count, inventory) => count + inventory.repositoryCount, 0),
+    privateRepositoryCount: inventories.reduce((count, inventory) => count + inventory.privateRepositoryCount, 0),
+    repositories: inventories.flatMap(inventory => inventory.repositories).sort((a, b) => a.name.localeCompare(b.name)),
+  };
 }
