@@ -29,6 +29,10 @@ test('built Worker signs and verifies owner cookies in workerd', async () => {
     assert.equal(oauth.purpose, 'oauth-state');
     assert.equal(oauth.nonce, authorize.searchParams.get('state'));
 
+    const invalidCallback = await worker.dispatchFetch(`${origin}/api/auth/callback?code=test-code`, { redirect: 'manual' });
+    assert.equal(invalidCallback.headers.get('Location'), `${origin}/settings?sign_in=state`);
+    assert.equal(invalidCallback.headers.get('Cache-Control'), 'no-store');
+
     const iat = Math.floor(Date.now() / 1000);
     const value = await signCookie({ purpose: 'owner-session', sub: '27035363', login: 'rdpollard', iat, exp: iat + SESSION_SECONDS }, secret);
     const headers = { Cookie: `${SESSION_COOKIE}=${value}` };

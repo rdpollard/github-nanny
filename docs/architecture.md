@@ -55,7 +55,8 @@ needed for tracking. The read-only public status endpoint returns no credentials
 user email, subscription endpoints, or private repository details. The owner ID
 and APP_ORIGIN are non-secret configuration. Query strings are redacted from
 platform logs/traces and invocation logs are disabled to avoid retaining OAuth
-authorization codes. Application logs contain only a fixed failure event name.
+authorization codes. Authentication application logs contain only a fixed
+failure event name and an allowlisted outcome, never raw provider error data.
 
 Logout clears the browser session cookie; signed cookies already copied to
 another client are not centrally revoked and expire within eight hours. Rotating

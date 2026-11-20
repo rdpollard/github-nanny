@@ -24,8 +24,8 @@ This is the foundation and owner connection code, not a live monitor yet. It inc
 
 Repository discovery, webhook ingestion, D1 persistence, live reconciliation,
 and actual push delivery are the next milestones. The decision function is not
-wired to a live ingestion pipeline yet. The hosted deployment is still the
-initial scaffold until this connection change passes CI and is deployed.
+wired to a live ingestion pipeline yet. The owner connection code is deployed;
+its secrets are installed, but real sign-in verification is still in progress.
 
 ## Local development
 

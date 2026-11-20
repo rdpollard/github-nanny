@@ -1,4 +1,34 @@
-# Initial deployment
+# Deployment status
+
+## Owner connection deployment
+
+The tested `main` commit `fc1b6624a98af06ca843c330e470c4edc7308a89` was
+deployed manually with the pinned Wrangler CLI after main CI passed. GitHub
+Actions deployment remains disabled until its separate credentials and gate are
+configured.
+
+- URL: https://github-nanny.github-nanny.workers.dev/settings
+- Cloudflare version: `b931d6d3-8134-4498-b1ec-de67fa1e995a`.
+- Public Client ID and app slug are configured for GitHub App `gh-nanny`.
+- `SESSION_SECRET` was generated with 32 random bytes and uploaded as a Worker
+  secret alongside the code. Its temporary private upload file was removed.
+- The owner entered `GITHUB_CLIENT_SECRET` directly in Cloudflare. No client
+  secret has been sent through chat or committed.
+
+HTTPS checks confirmed `/settings`, `/api/health`, `/api/status` and
+`/api/auth/session` return 200. After secret installation the uncached session
+response reports `configured: true`. The login endpoint redirects to GitHub with
+the expected Client ID, redirect URI, S256 PKCE and secure state cookie. This
+checks configuration format, not whether GitHub accepts the secret.
+
+The first real attempt exposed a missing registered redirect URI. After the
+owner added it, the app returned a generic sign-in failure. The exact cause is
+still unconfirmed. The next code change distinguishes state, credential, code,
+redirect, exchange and identity failures using fixed outcomes, without exposing
+provider payloads. It is not deployed yet. Public status remains unknown and
+unconnected; live monitoring and push are not implemented.
+
+## Initial deployment
 
 Cloudflare accepted the first `github-nanny` deployment on 2026-11-19 using the
 project's pinned Wrangler CLI and the owner's authenticated personal account.
