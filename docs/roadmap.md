@@ -25,7 +25,8 @@
 - [ ] Add server-side revocation/disconnect handling before broader owner writes.
 - [ ] Add D1 migrations and persist verified installation/repository inventories.
 - [x] Implement explicit owner-only installation/repository access check with pagination.
-- [ ] Deploy the access check and verify the real App key and repository inventory.
+- [x] Deploy the owner-only repository access check after CI.
+- [ ] Verify the real App key and repository inventory in the owner's browser.
 - [ ] Implement signature-verified webhooks, deduplication and event ordering.
 - [ ] Track all run IDs/attempts; test simultaneous runs of the same workflow.
 - [ ] Provide active-run API with scope/freshness and access failure handling.

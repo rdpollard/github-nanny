@@ -1,7 +1,8 @@
 # GitHub owner connection
 
-Owner identity authorization is deployed. Owner-only repository discovery is
-implemented and awaiting CI/deployment. Actions webhooks, D1 and notifications
+Owner identity authorization and owner-only repository discovery are deployed.
+The real repository inventory still needs the owner's authenticated check.
+Actions webhooks, D1 and notifications
 are separate upcoming changes. A successful
 sign-in does not imply that live monitoring is connected. Public status remains
 unknown until that pipeline is implemented and synchronized.

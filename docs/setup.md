@@ -62,8 +62,8 @@ automatically. Verify the account before deployment, and set
 The initial scaffold can be deployed for UI review, but will still report
 unknown and cannot send notifications. Owner sign-in code is implemented in
 `main` and deployed with its secrets, and real owner sign-in is verified. The App
-is installed; the new explicit repository access check needs CI/deployment and
-real inventory verification. Live monitoring is not implemented.
+is installed; the explicit repository access check is deployed and needs real
+inventory verification. Live monitoring is not implemented.
 
 An interactive Wrangler login does not authenticate GitHub Actions. CI requires
 its own account-scoped Cloudflare API token. Prefer an account-owned token with

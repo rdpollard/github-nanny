@@ -1,13 +1,26 @@
 # Deployment status
 
+## Repository access check deployment
+
+After main CI passed, commit `9df27529dcf48899f39dc59313fc47f7af09288f`
+was deployed as Cloudflare version `1fc2874e-9877-4994-91ec-fb2a6b34ae2c`.
+The existing Worker secrets and public configuration were preserved.
+
+HTTPS checks confirmed the deployed settings bundle contains **Check repository
+access**, `/api/admin/repositories` rejects an unauthenticated request with 401
+and no-store caching, sign-in remains configured, and health is OK. Public
+monitor status remains unknown/unconnected. The owner must click the check while
+signed in to verify the real App key, installation permissions and repository
+count; that authenticated live check has not yet been performed.
+
 ## Repository discovery preparation
 
 The owner reports saving the App's read permissions, All repositories selection,
 and private key directly in Cloudflare. Wrangler's secret-name listing confirms
 `GITHUB_APP_PRIVATE_KEY`, `GITHUB_CLIENT_SECRET` and `SESSION_SECRET` are present.
-Their values were not read. The new owner-only access check is implemented and
-tested locally but is not deployed or verified with the actual installation yet.
-The live Worker remains the owner sign-in fix version recorded below.
+Their values were not read. The owner-only access check passed local and GitHub
+CI checks and is deployed as recorded above. Actual installation verification
+still needs the owner's authenticated browser.
 
 ## Owner sign-in fix deployment
 

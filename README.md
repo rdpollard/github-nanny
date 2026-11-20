@@ -28,8 +28,8 @@ Webhook ingestion, D1 persistence, live reconciliation, and actual push delivery
 are the next milestones. The decision function is not
 wired to a live ingestion pipeline yet. The owner connection code is deployed;
 its secrets are installed, and real owner sign-in is verified. Repository access
-checking is implemented but still needs CI, deployment and real installation
-verification. It does not start live monitoring.
+checking is deployed and awaits real installation verification through the
+owner's browser. It does not start live monitoring.
 
 ## Local development
 
