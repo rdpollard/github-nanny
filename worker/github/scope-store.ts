@@ -1,6 +1,7 @@
 import type { GitHubAccountScope, RepositoryAccessReport, SavedMonitoringScope } from '../../shared/contracts.ts';
 import type { AuthConfig, Bindings } from '../auth/config.ts';
 import { repositoryScopes } from './scopes.ts';
+import { resetMonitorScope } from '../monitor-store.ts';
 
 interface ScopeDocument {
   accounts: { id: string; login: string; kind: GitHubAccountScope['kind']; installationId: number; selection: 'all' | 'selected' }[];
@@ -101,20 +102,26 @@ export class MonitoringScopeStore {
 
   async save(key: string, expectedRevision: number, report: RepositoryAccessReport): Promise<SavedMonitoringScope> {
     const scope = document(report, key);
-    const result = await this.database.withSession('first-primary').prepare(
+    const database = this.database.withSession('first-primary');
+    const result = await database.batch([database.prepare(
       'UPDATE monitoring_scope SET revision = revision + 1, config_key = ?, verified_at = ?, scope_json = ? WHERE singleton = 1 AND revision = ? RETURNING revision',
-    ).bind(key, report.checkedAt, JSON.stringify(scope), expectedRevision).first<{ revision: number }>();
+    ).bind(key, report.checkedAt, JSON.stringify(scope), expectedRevision), ...resetMonitorScope(database)]);
     // A disconnect or a newer save won while discovery was running. Never
     // silently reconnect or overwrite it with the older in-flight result.
-    if (!result) throw new ScopeError('conflict');
-    return { revision: result.revision, prepared: true, policy: 'public-only', verifiedAt: report.checkedAt,
+    if (result.some(statement => !statement.success)) throw new Error('Monitoring storage unavailable');
+    const row = result[0].results[0] as { revision: number } | undefined;
+    if (!row) throw new ScopeError('conflict');
+    return { revision: row.revision, prepared: true, policy: 'public-only', verifiedAt: report.checkedAt,
       repositories: scope.repositories };
   }
 
   async disconnect(): Promise<SavedMonitoringScope> {
-    const row = await this.database.withSession('first-primary').prepare(
+    const database = this.database.withSession('first-primary');
+    const result = await database.batch([database.prepare(
       'UPDATE monitoring_scope SET revision = revision + 1, config_key = NULL, verified_at = NULL, scope_json = NULL WHERE singleton = 1 RETURNING revision',
-    ).first<{ revision: number }>();
+    ), ...resetMonitorScope(database)]);
+    if (result.some(statement => !statement.success)) throw new Error('Monitoring storage unavailable');
+    const row = result[0].results[0] as { revision: number } | undefined;
     if (!row) throw new Error('Monitoring storage unavailable');
     return { revision: row.revision, prepared: false, policy: 'public-only', verifiedAt: null, repositories: [] };
   }

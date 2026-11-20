@@ -29,11 +29,14 @@ This is the foundation and owner connection code, not a live monitor yet. It inc
 - An owner-only saved public scope, fresh verification before saving, and a
   disconnect action. This is deployed and owner-verified. A saved inventory is
   not proof of current access or idle.
-- An owner-triggered manual Actions check in settings, deployed and awaiting
-  owner validation. It covers all five unfinished statuses, complete pagination,
+- An owner-triggered manual Actions check in settings, deployed and owner-verified
+  with an empty result across four public repositories. It covers all five unfinished statuses, complete pagination,
   visibility/access validation and scope changes without claiming global idle.
+- Durable internal monitoring state and atomic idle outbox support, implemented
+  and awaiting CI/deployment. Manual checks save sanitized observations; public
+  status and notification creation stay disabled until continuous monitoring is ready.
 
-Webhook ingestion, run-state persistence, live reconciliation, and actual push delivery
+Webhook ingestion, continuous reconciliation, and actual push delivery
 are the next milestones. The decision function is not
 wired to a live ingestion pipeline yet. The owner connection code is deployed;
 its secrets are installed, and real owner sign-in is verified. Repository access

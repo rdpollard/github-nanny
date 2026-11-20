@@ -4,6 +4,7 @@ import type { Fetcher } from '../auth/github.ts';
 import { DiscoveryError, githubRequest, type GitHubBudget } from './client.ts';
 import { checkRepositoryAccess } from './discovery.ts';
 import { MonitoringScopeStore, ScopeError, scopeKey, verifiedScopeRepositories } from './scope-store.ts';
+import { MonitorStore, MonitorConflict } from '../monitor-store.ts';
 
 export const UNFINISHED_STATUSES = ['queued', 'in_progress', 'requested', 'waiting', 'pending'] as const;
 type Repository = SavedMonitoringScope['repositories'][number];
@@ -84,6 +85,11 @@ export async function checkActions(env: Bindings, config: AuthConfig, login: str
   const key = scopeKey(env, config, login);
   const saved = await store.read(key);
   if (!saved.prepared) throw new ActionsCheckError('not_prepared');
+  const monitor = new MonitorStore(env.DB);
+  const token = await monitor.begin(key, saved).catch(error => {
+    if (error instanceof MonitorConflict) throw new ActionsCheckError('conflict');
+    throw error;
+  });
   const startedAt = new Date().toISOString();
   const budget: GitHubBudget = { remaining: 40, deadlineAt: Date.now() + 25_000 };
   const tokens = new Map<number, string>();
@@ -108,9 +114,15 @@ export async function checkActions(env: Bindings, config: AuthConfig, login: str
     }
     const current = await store.read(key);
     if (!current.prepared || current.revision !== saved.revision) throw new ActionsCheckError('conflict');
-    return { scopeRevision: saved.revision, startedAt, checkedAt: new Date().toISOString(),
+    const observation = { scopeRevision: saved.revision, startedAt, checkedAt: new Date().toISOString(),
       repositoryCount: verified.length, runs: runs.sort((a, b) => a.repository.localeCompare(b.repository) || a.id - b.id) };
+    await monitor.complete(token, observation);
+    return observation;
   } catch (error) {
+    try { await monitor.fail(token); } catch (failure) {
+      if (!(failure instanceof MonitorConflict)) throw new ActionsCheckError('unavailable');
+    }
+    if (error instanceof MonitorConflict) throw new ActionsCheckError('conflict');
     if (error instanceof ActionsCheckError) throw error;
     if (error instanceof ScopeError) throw new ActionsCheckError('scope_changed');
     if (error instanceof DiscoveryError) throw new ActionsCheckError(error.reason === 'rate_limited' ? 'rate_limited' : error.reason === 'incomplete' ? 'incomplete' : 'unavailable');

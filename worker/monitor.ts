@@ -40,3 +40,30 @@ export function reconcile(state: MonitorState, scan: Scan): {
     idleNotice: state.activityObserved ? { epoch } : null,
   };
 }
+
+export const IDLE_STABILIZATION_MS = 10_000;
+export const MAX_EMPTY_GAP_MS = 120_000;
+export interface StabilizedMonitorState extends MonitorState {
+  emptySince: number | null;
+  lastCompleteAt: number | null;
+}
+
+// Only a second complete scan that STARTED after the quiet interval can
+// confirm an apparent idle. Spending time inside the first scan is not enough.
+export function stabilize(state: StabilizedMonitorState, scan: Scan & { startedAt: number; finishedAt: number }): {
+  state: StabilizedMonitorState; idleNotice: { epoch: number } | null;
+} {
+  if (!scan.complete || scan.revision !== state.revision ||
+    !Number.isSafeInteger(scan.activeRunCount) || scan.activeRunCount < 0 ||
+    !Number.isSafeInteger(scan.startedAt) || scan.startedAt < 0 ||
+    !Number.isSafeInteger(scan.finishedAt) || scan.finishedAt < scan.startedAt ||
+    (state.lastCompleteAt !== null && scan.startedAt < state.lastCompleteAt)) return { state, idleNotice: null };
+  const expired = state.emptySince !== null && scan.startedAt > state.emptySince + MAX_EMPTY_GAP_MS;
+  if (scan.activeRunCount === 0 && (state.emptySince === null || expired || scan.startedAt < state.emptySince + IDLE_STABILIZATION_MS)) {
+    return { state: { ...state, phase: 'unknown', emptySince: expired ? scan.finishedAt : state.emptySince ?? scan.finishedAt,
+      lastCompleteAt: scan.finishedAt }, idleNotice: null };
+  }
+  const result = reconcile(state, scan);
+  return { state: { ...result.state, emptySince: scan.activeRunCount ? null : state.emptySince,
+    lastCompleteAt: scan.finishedAt }, idleNotice: result.idleNotice };
+}
