@@ -5,9 +5,9 @@ webhooks, D1 and notifications are separate upcoming changes. A successful
 sign-in does not imply that live monitoring is connected. Public status remains
 unknown until that pipeline is implemented and synchronized.
 
-The owner connection code has passed CI and is merged into `main`. The currently
-hosted scaffold does not contain these handlers yet; deployment and secret
-configuration are still required before sign-in works.
+The owner connection code has passed CI, is merged into `main`, and is deployed.
+The session signing key is installed. The owner must still enter
+`GITHUB_CLIENT_SECRET` directly in Cloudflare before sign-in works; see below.
 
 ## Registered app
 
@@ -125,11 +125,10 @@ expiry and CSRF protection. A workerd integration test verifies that the built
 Worker signs/verifies cookies in its actual runtime. Browser smoke checks cover
 the unconfigured owner screen and keep the public dashboard available.
 
-Once CI has completed and the user reports the result, the next external step is
-GitHub App registration and secure client-secret installation. Then deploy the
-approved connection code and verify the actual browser authorization flow,
-including denial of another account. No scheduled GitHub checks or status
-watchers are added by this milestone.
+The App is registered and the approved code and session key are deployed. The
+next external step is secure client-secret installation. Then verify the actual
+browser authorization flow, including denial of another account. No scheduled
+GitHub checks or status watchers are added by this milestone.
 
 ## References
 

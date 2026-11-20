@@ -61,8 +61,8 @@ automatically. Verify the account before deployment, and set
 
 The initial scaffold can be deployed for UI review, but will still report
 unknown and cannot send notifications. Owner sign-in code is implemented in
-`main`, but the hosted scaffold still needs an update and auth secrets. Live
-repository monitoring is not implemented.
+`main` and deployed, but still needs the GitHub client secret. Live repository
+monitoring is not implemented.
 
 An interactive Wrangler login does not authenticate GitHub Actions. CI requires
 its own account-scoped Cloudflare API token. Prefer an account-owned token with
@@ -75,7 +75,8 @@ chat or a commit. Do not copy the short-lived local OAuth access token into CI.
 
 Keep `CLOUDFLARE_DEPLOY_ENABLED` disabled until the token is installed and automatic
 public releases from main are intended. The foundation and owner sign-in code
-are merged into `main`; the initial hosted scaffold has not yet been updated.
+are merged into `main` and deployed manually. See deployment.md for the version
+and remaining owner activation step.
 
 ## GitHub App setup (milestone 2)
 
