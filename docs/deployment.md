@@ -13,8 +13,10 @@ not replace a real owner authorization test. The session endpoint reports
 configured and unauthenticated, health is OK, and monitor status remains unknown
 and unconnected. The owner then completed real browser authorization and
 confirmed `/settings` shows **Signed in as rdpollard** with the identity
-connected notice. GitHub App installation and live repository discovery are
-still pending. Denial of another real GitHub account has not been exercised.
+connected notice. The owner installed the App and reports saving repository read
+permissions and All repositories. Server-side installation verification and
+live repository discovery are still pending. Denial of another real GitHub
+account has not been exercised.
 
 ## Sign-in diagnostics deployment
 

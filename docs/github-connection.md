@@ -9,8 +9,10 @@ The owner connection code has passed CI, is merged into `main`, and is deployed.
 The session signing key and owner-entered `GITHUB_CLIENT_SECRET` are installed.
 The real sign-in attempt failed because Workers rejects the fetch redirect mode
 used by the exchange. The fix passed CI and is deployed. The owner completed
-real browser authorization and confirmed **Signed in as rdpollard**. App
-installation and live repository discovery are still pending.
+real browser authorization and confirmed **Signed in as rdpollard**. The owner
+installed the App and reports saving Actions/Metadata read access and All
+repositories. Server-side installation verification and repository discovery
+are still pending.
 
 ## Registered app
 
@@ -62,6 +64,30 @@ and then uses the installation link; GitHub returns to the Setup URL afterward.
 After registration, record the public **Client ID** and the app slug from its
 GitHub URL. Generate a **client secret**. The app private key and webhook secret
 will be needed for the subsequent installation/tracking milestone, not this one.
+
+## Prepare installation authentication
+
+Owner identity sign-in is verified. The App was initially installed without
+repository permissions; the owner then reports saving Actions: read, Metadata:
+read and All repositories. The backend must still verify the actual installation
+and its access through GitHub before claiming coverage.
+
+GitHub App API authentication requires its own private key, separate from the
+OAuth client secret already installed:
+
+1. Open https://github.com/settings/apps/gh-nanny. In **Credentials → Key pairs**,
+   select **New key**. GitHub downloads a PEM file. Some GitHub settings layouts
+   label this **Private keys → Generate a private key**.
+2. Open the downloaded file in a local text editor and copy its entire contents,
+   including the BEGIN/END lines and newlines.
+3. In the existing Cloudflare Worker's **Settings → Variables and Secrets**,
+   add a **Secret** named `GITHUB_APP_PRIVATE_KEY`. Paste the complete PEM and
+   select **Deploy**. Do not send the key through chat or add it to the repo.
+
+GitHub downloads PKCS#1 RSA private keys. The upcoming backend implementation
+must handle that format securely and test JWT signing in workerd. This setup
+does not itself activate monitoring; no installed-key verification, repository
+discovery endpoint, database, webhook ingestion or scheduler exists yet.
 
 ## Configure the Worker
 
@@ -175,3 +201,4 @@ incompatibility again.
 - https://developers.cloudflare.com/workers/observability/logs/workers-logs/#invocation-logs
 - https://developers.cloudflare.com/workers/testing/miniflare/writing-tests/
 - https://developers.cloudflare.com/workers/runtime-apis/request/#requestinit
+- https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/managing-private-keys-for-github-apps
