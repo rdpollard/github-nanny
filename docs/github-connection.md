@@ -8,7 +8,8 @@ unknown until that pipeline is implemented and synchronized.
 The owner connection code has passed CI, is merged into `main`, and is deployed.
 The session signing key and owner-entered `GITHUB_CLIENT_SECRET` are installed.
 The real sign-in attempt failed because Workers rejects the fetch redirect mode
-used by the exchange. The fix must pass CI and be deployed before retrying.
+used by the exchange. The fix passed CI and is deployed; the live exchange now
+reaches GitHub. Real owner sign-in must still be verified in the browser.
 
 ## Registered app
 

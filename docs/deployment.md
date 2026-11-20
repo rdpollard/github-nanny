@@ -1,5 +1,18 @@
 # Deployment status
 
+## Owner sign-in fix deployment
+
+After main CI passed, commit `310c7a0d57a0ddc33dafbb57cd0ef24f367d1be0`
+was deployed as Cloudflare version `1164b1b7-2802-406b-a2d7-7283bf2f456d`.
+The existing secrets and public configuration were preserved.
+
+The live callback now returns `verification` for an intentionally invalid code
+with fresh, valid browser state. Before the fix it returned `provider` without
+sending an outbound request. This verifies the exchange reaches GitHub; it does
+not replace a real owner authorization test. The session endpoint reports
+configured and unauthenticated, health is OK, and monitor status remains unknown
+and unconnected. The owner must now retry sign-in in their browser.
+
 ## Sign-in diagnostics deployment
 
 After CI passed, main commit `58c7190e220e35b352d92e654546f4104a72f4cd`
@@ -16,7 +29,8 @@ test did not exercise the code-exchange request.
 The correction uses `redirect: 'manual'` and explicitly rejects all 3xx
 responses. A full workerd callback test now covers token exchange, identity
 lookup, owner session creation and redirects from both provider endpoints.
-This correction still needs CI and deployment before another real sign-in test.
+This correction passed CI and was deployed as recorded above. Real owner
+sign-in remains to be verified.
 
 ## Owner connection deployment
 
