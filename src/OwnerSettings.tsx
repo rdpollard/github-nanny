@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ExternalLink, Lock, LogOut } from 'lucide-react';
-import { DISCOVERY_MESSAGES, SIGN_IN_MESSAGES, type OwnerSession, type RepositoryAccessReport, type SignInOutcome } from '../shared/contracts';
+import { DISCOVERY_MESSAGES, SIGN_IN_MESSAGES, type OwnerSession, type RepositoryAccessReport, type SavedMonitoringScope, type SignInOutcome } from '../shared/contracts';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 
@@ -11,6 +11,9 @@ export function OwnerSettings() {
   const [checking, setChecking] = useState(false);
   const [discovery, setDiscovery] = useState<RepositoryAccessReport | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+  const [scope, setScope] = useState<SavedMonitoringScope | null>(null);
+  const [scopeBusy, setScopeBusy] = useState(false);
+  const [scopeError, setScopeError] = useState<string | null>(null);
   const [outcome] = useState<SignInOutcome | null>(() => {
     const value = new URLSearchParams(location.search).get('sign_in');
     return value && Object.hasOwn(SIGN_IN_MESSAGES, value) ? value as SignInOutcome : null;
@@ -32,6 +35,34 @@ export function OwnerSettings() {
     if (location.search) history.replaceState(null, '', '/settings');
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (!session?.authenticated) { setScope(null); setScopeError(null); return; }
+    const controller = new AbortController();
+    void manageScope('GET', controller.signal);
+    return () => controller.abort();
+  }, [session?.authenticated]);
+
+  async function manageScope(method: 'GET' | 'POST' | 'DELETE', signal?: AbortSignal) {
+    setScopeBusy(true);
+    setScope(null);
+    setScopeError(null);
+    try {
+      const response = await fetch('/api/admin/monitoring', { method, cache: 'no-store', credentials: 'same-origin', signal });
+      if (!response.ok) {
+        const data: { reason?: string } = await response.json();
+        if (!signal?.aborted) setScopeError(response.status === 401 ? 'Sign in again before managing the saved scope.'
+          : data.reason === 'conflict' ? 'The saved scope changed in another request. Reload it before trying again.'
+          : data.reason === 'incomplete' ? 'A complete, nonempty public repository scope could not be verified. Nothing was saved.'
+          : 'The saved scope is unavailable. Reload it or try again.');
+        return;
+      }
+      const data: SavedMonitoringScope = await response.json();
+      if (!signal?.aborted) setScope(data);
+    } catch {
+      if (!signal?.aborted) setScopeError('The saved scope is unavailable. Reload it or try again.');
+    } finally { if (!signal?.aborted) setScopeBusy(false); }
+  }
 
   async function signOut(allDevices = false) {
     setSigningOut(true);
@@ -86,8 +117,8 @@ export function OwnerSettings() {
             {session.installationUrl && <Button asChild><a href={session.installationUrl} target="_blank" rel="noopener noreferrer">Install or manage GitHub App<ExternalLink aria-hidden="true" /></a></Button>}
             <p className="text-sm text-muted-foreground">Owner sign-in is ready. Live repository monitoring is not connected yet.</p>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => { void signOut(); }} disabled={signingOut || checking}><LogOut aria-hidden="true" />{signingOut ? 'Signing out…' : 'Sign out'}</Button>
-              <Button variant="outline" onClick={() => { void signOut(true); }} disabled={signingOut || checking}>Sign out all devices</Button>
+              <Button variant="outline" onClick={() => { void signOut(); }} disabled={signingOut || checking || scopeBusy}><LogOut aria-hidden="true" />{signingOut ? 'Signing out…' : 'Sign out'}</Button>
+              <Button variant="outline" onClick={() => { void signOut(true); }} disabled={signingOut || checking || scopeBusy}>Sign out all devices</Button>
             </div>
           </>}
         </CardContent>
@@ -95,7 +126,7 @@ export function OwnerSettings() {
       {session?.authenticated && <Card className="mt-6">
         <CardHeader><CardTitle>Repository access</CardTitle><CardDescription>Verify the configured personal and organization installations when you choose. This does not start Actions monitoring.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
-          <Button onClick={() => { void checkRepositories(); }} disabled={checking || signingOut}>{checking ? 'Checking repository access…' : 'Check repository access'}</Button>
+          <Button onClick={() => { void checkRepositories(); }} disabled={checking || signingOut || scopeBusy}>{checking ? 'Checking repository access…' : 'Check repository access'}</Button>
           {discoveryError && <p role="alert">{discoveryError}</p>}
           {discovery && <>
             <p role={discovery.complete ? 'status' : 'alert'}>{discovery.complete
@@ -117,6 +148,26 @@ export function OwnerSettings() {
               </>}
             </section>)}
           </>}
+        </CardContent>
+      </Card>}
+      {session?.authenticated && <Card className="mt-6">
+        <CardHeader><CardTitle>Public monitoring scope</CardTitle><CardDescription>Save all public repositories from the configured installations after a fresh access check. Private repositories and their activity are excluded. Saving does not start Actions monitoring yet.</CardDescription></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => { void manageScope('POST'); }} disabled={scopeBusy || checking || signingOut}>Save public scope</Button>
+            <Button variant="outline" onClick={() => { void manageScope('GET'); }} disabled={scopeBusy || checking || signingOut}>Reload saved scope</Button>
+            <Button variant="outline" onClick={() => { void manageScope('DELETE'); }} disabled={scopeBusy || checking || signingOut}>Disconnect saved scope</Button>
+          </div>
+          {scopeBusy && <p role="status">Loading or updating saved scope…</p>}
+          {scopeError && <p role="alert">{scopeError}</p>}
+          {scope && <>
+            <p role="status">{scope.prepared ? `Public scope saved: ${scope.repositories.length} repositories. Actions monitoring is not active yet.` : 'No public monitoring scope is saved.'}</p>
+            {scope.verifiedAt && <p className="text-sm text-muted-foreground">Verified {new Date(scope.verifiedAt).toLocaleString()}. Saved access does not guarantee current access.</p>}
+            {scope.repositories.length > 0 && <ul aria-label="Saved public repositories" className="max-h-72 space-y-2 overflow-auto">
+              {scope.repositories.map(repository => <li key={repository.id}><a className="break-all text-sky-700 underline dark:text-sky-400" href={repository.url} target="_blank" rel="noopener noreferrer">{repository.name}</a></li>)}
+            </ul>}
+          </>}
+          <p className="text-sm text-muted-foreground">Disconnect clears the saved scope. It does not uninstall the GitHub App or sign you out.</p>
         </CardContent>
       </Card>}
     </main>

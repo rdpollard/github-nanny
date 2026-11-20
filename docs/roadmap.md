@@ -23,10 +23,12 @@
 - [x] Exercise code exchange, identity lookup and redirect rejection in workerd.
 - [x] Verify real owner GitHub App authorization after registration and deployment.
 - [x] Implement D1-backed owner session revocation, including all-device sign-out.
-- [ ] Deploy persistent sessions and verify real browser sign-in/sign-out.
-- [ ] Add monitoring disconnect handling before live configuration mutations.
+- [x] Deploy persistent sessions and verify real browser sign-in/sign-out.
+- [x] Add saved-scope disconnect and fence concurrent/in-flight scope saves.
+- [ ] Extend disconnect to invalidate future scans, activity and pending notices.
 - [x] Create D1 database and add the first session migration.
-- [ ] Add D1 migrations and persist verified installation/repository inventories.
+- [x] Add D1 migrations and persist verified public installation/repository scope.
+- [ ] Deploy and verify saved-scope setup/disconnect in the owner's browser.
 - [x] Implement explicit owner-only installation/repository access check with pagination.
 - [x] Deploy the owner-only repository access check after CI.
 - [x] Verify the real App key and personal repository inventory in the owner's browser.

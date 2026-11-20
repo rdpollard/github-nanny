@@ -151,6 +151,9 @@ export async function discoverRepositories(env: Bindings, config: AuthConfig, lo
 export async function checkRepositoryAccess(env: Bindings, config: AuthConfig, login: string, options: {
   fetcher?: Fetcher; now?: number;
 } = {}): Promise<RepositoryAccessReport> {
+  // One verification generation shares its timestamp across every account and
+  // the aggregate report, including when no test clock is supplied.
+  options = { ...options, now: options.now ?? Date.now() };
   let scopes: GitHubAccountScope[];
   try { scopes = repositoryScopes(env, config, login); }
   catch { throw new DiscoveryError('configuration'); }

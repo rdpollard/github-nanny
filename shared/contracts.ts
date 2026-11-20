@@ -69,6 +69,14 @@ export interface OwnerSession {
   installationUrl: string | null;
 }
 
+export interface SavedMonitoringScope {
+  revision: number;
+  prepared: boolean;
+  policy: 'public-only';
+  verifiedAt: string | null;
+  repositories: { id: number; name: string; url: string; accountId: string; installationId: number }[];
+}
+
 export interface ActiveRun {
   id: number;
   repository: string;

@@ -1,17 +1,19 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import { randomToken, SESSION_COOKIE, SESSION_SECONDS, signCookie } from '../../worker/auth/cookies.ts';
 
-const migration = await readFile(new URL('../../migrations/0001_owner_sessions.sql', import.meta.url), 'utf8');
+const migrationsDirectory = new URL('../../migrations/', import.meta.url);
+const migrations = await Promise.all((await readdir(migrationsDirectory)).filter(name => name.endsWith('.sql')).sort()
+  .map(name => readFile(new URL(name, migrationsDirectory), 'utf8')));
 
 export async function runtimeWorker(options, migrate = true) {
   const worker = new Miniflare(convertV4MiniflareOptions({ ...options, d1Databases: { DB: 'test-owner-sessions' } }));
   try {
     if (migrate) {
       const database = await worker.getD1Database('DB');
-      // This controlled migration contains no semicolons inside string values.
-      await database.batch(migration.split(';').map(sql => sql.trim()).filter(Boolean).map(sql => database.prepare(sql)));
+      // These controlled migrations contain no semicolons inside string values.
+      for (const migration of migrations) await database.batch(migration.split(';').map(sql => sql.trim()).filter(Boolean).map(sql => database.prepare(sql)));
     }
     return worker;
   } catch (error) { await worker.dispose(); throw error; }

@@ -1,5 +1,42 @@
 # Deployment status
 
+## Saved public scope preparation
+
+The owner confirmed persistent sign-in and all-device sign-out work in normal
+and private browser windows. That live verification is complete.
+
+The next change adds migration `0002_monitoring_scope.sql` and owner-only
+save/reload/disconnect controls. Saves require fresh complete verification and
+persist only public records. Revision checks prevent a slow save from restoring
+a disconnected scope. This code and migration are not deployed yet; the live
+Worker remains the persistent-session version below. Actions monitoring,
+scheduled checks, webhook ingestion and push remain inactive.
+
+Local validation passed: generated types, TypeScript, 35 unit tests, the existing
+seven workerd/D1 tests and five new scope integration tests, including real SQL
+revision races, private-repository exclusion, partial verification and malformed
+stored data. Browser smoke passed with system Chromium, including save conflict,
+reload, disconnect, mobile layout and sign-out. The new migration applied locally;
+its remote application is deferred until CI passes and deployment resumes.
+
+## Persistent session deployment
+
+PR #8 and main CI passed. Main commit
+`10a12d0ab89a2cf2d2dc8fecb1e16dc35a42d4b5` was deployed manually as
+Cloudflare version `361247df-ce03-4097-8226-ccd0c98f1ced`. The deployment
+confirmed the hosted database has no pending migrations and bound `DB` to the
+existing `github-nanny` database. Existing Worker secrets were preserved.
+Automatic GitHub deployment remains disabled; its workflow was skipped.
+
+HTTPS checks confirmed health, configured sign-in, the all-device sign-out UI,
+401 protection on repository access and unauthenticated sign-out, and 405 for
+GET on all-device sign-out. API responses remain uncached. Public monitoring
+status is still unknown and unconnected; no Actions monitoring has started.
+
+Existing stateless sessions require a fresh browser sign-in. The owner verified
+reauthentication and all-device revocation across normal and private browser
+sessions. Local workerd/D1 tests also cover both revocation paths.
+
 ## Persistent session preparation
 
 The owner confirmed complete access: 20 personal repositories (three public,
@@ -9,12 +46,12 @@ monitor only the four public repositories; private activity is excluded.
 Created D1 database `github-nanny` in WNAM, ID
 `c34f0c4b-a637-4ad9-94be-c60f1b0ef9a1`, and configured binding `DB`.
 Migration `0001_owner_sessions.sql` passed both local and remote application.
-No paid plan was enabled. The new database is prepared but the live Worker has
-not been updated to use it; it remains the organization-access version below.
+No paid plan was enabled. The database was prepared before the live Worker was
+updated; the persistent-session deployment is recorded above.
 
 The persistent-session code and all-device logout passed local unit, workerd/D1,
-browser and packaging checks. It still needs CI and deployment. Existing
-stateless sessions will need one fresh sign-in after that deployment. Monitoring
+browser and packaging checks, followed by CI and deployment as recorded above.
+Existing stateless sessions need one fresh sign-in after that deployment. Monitoring
 state persistence, webhook ingestion and actual Actions monitoring are not active.
 
 ## Organization access deployment

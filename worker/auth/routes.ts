@@ -7,6 +7,7 @@ import {
 import { GitHubAuthError, githubIdentity, type Fetcher } from './github.ts';
 import { checkRepositoryAccess, DiscoveryError } from '../github/discovery.ts';
 import { DatabaseSessions, type SessionStore } from './sessions.ts';
+import { MonitoringScopeStore, ScopeError, scopeKey } from '../github/scope-store.ts';
 
 export const privateHeaders = {
   'Cache-Control': 'no-store', Vary: 'Cookie', 'X-Content-Type-Options': 'nosniff',
@@ -57,15 +58,17 @@ export async function authRoute(request: Request, env: Bindings, options: AuthOp
     ['/api/auth/session', 'GET'], ['/api/auth/login', 'GET'],
     ['/api/auth/callback', 'GET'], ['/api/auth/logout', 'POST'], ['/api/auth/logout-all', 'POST'], ['/api/admin/installation', 'GET'],
     ['/api/admin/repositories', 'GET'],
+    ['/api/admin/monitoring', 'GET, POST, DELETE'],
   ]);
   const method = routes.get(url.pathname);
   if (!method) return null;
-  if (request.method !== method) return json({ error: 'Method not allowed' }, 405, { Allow: method });
+  if (!method.split(', ').includes(request.method)) return json({ error: 'Method not allowed' }, 405, { Allow: method });
   try { return await configuredAuthRoute(request, env, options, url); }
   catch {
     // Storage exceptions can contain SQL, bindings or implementation details.
-    console.warn({ event: 'owner_session_unavailable' });
-    return json({ error: 'Owner session storage unavailable' }, 503);
+    const monitoring = url.pathname === '/api/admin/monitoring';
+    console.warn({ event: monitoring ? 'monitoring_scope_unavailable' : 'owner_session_unavailable' });
+    return json({ error: monitoring ? 'Monitoring scope storage unavailable' : 'Owner session storage unavailable' }, 503);
   }
 }
 
@@ -133,6 +136,30 @@ async function configuredAuthRoute(request: Request, env: Bindings, options: Aut
   const current = await session(request, config, sessions, now);
   const owner = current.view;
   if (!owner.authenticated) return json({ error: 'Owner sign-in required' }, 401);
+  if (url.pathname === '/api/admin/monitoring') {
+    if (request.headers.get('Sec-Fetch-Site') === 'cross-site' ||
+      (request.method !== 'GET' && request.headers.get('Origin') !== config.origin)) return json({ error: 'Invalid request origin' }, 403);
+    if (!env.DB) return json({ error: 'Monitoring scope storage unavailable' }, 503);
+    const store = new MonitoringScopeStore(env.DB);
+    if (request.method === 'DELETE') return json(await store.disconnect());
+    let key: string;
+    try { key = scopeKey(env, config, owner.owner!.login); }
+    catch { return json({ error: 'Monitoring scope configuration unavailable', reason: 'configuration' }, 503); }
+    const saved = await store.read(key);
+    if (request.method === 'GET') return json(saved);
+    try {
+      // A fresh server-side check is mandatory. Ignore caller bodies/query
+      // parameters; an old browser inventory cannot authorize a saved scope.
+      const report = await checkRepositoryAccess(env, config, owner.owner!.login, {
+        fetcher: options.fetcher, now: options.now,
+      });
+      return json(await store.save(key, saved.revision, report));
+    } catch (error) {
+      if (error instanceof ScopeError) return json({ error: 'Monitoring scope was not saved', reason: error.reason }, 409);
+      if (error instanceof DiscoveryError) return json({ error: 'Repository discovery unavailable', reason: error.reason }, 503);
+      throw error;
+    }
+  }
   if (url.pathname === '/api/admin/repositories') {
     if (request.headers.get('Sec-Fetch-Site') === 'cross-site') return json({ error: 'Invalid request origin' }, 403);
     try {
