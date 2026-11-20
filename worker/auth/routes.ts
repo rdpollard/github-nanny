@@ -6,6 +6,7 @@ import {
 } from './cookies.ts';
 import { GitHubAuthError, githubIdentity, type Fetcher } from './github.ts';
 import { checkRepositoryAccess, DiscoveryError } from '../github/discovery.ts';
+import { DatabaseSessions, type SessionStore } from './sessions.ts';
 
 export const privateHeaders = {
   'Cache-Control': 'no-store', Vary: 'Cookie', 'X-Content-Type-Options': 'nosniff',
@@ -28,36 +29,52 @@ function validTimes(payload: Record<string, unknown>, now: number, lifetime: num
     payload.iat <= now && payload.exp > now && payload.exp - payload.iat === lifetime;
 }
 
-async function session(request: Request, config: AuthConfig | null, now: number): Promise<OwnerSession> {
-  const result: OwnerSession = { configured: !!config, authenticated: false, owner: null, installationUrl: null };
-  if (!config) return result;
+async function session(request: Request, config: AuthConfig | null, sessions: SessionStore | null, now: number): Promise<{ view: OwnerSession; id: string | null }> {
+  const view: OwnerSession = { configured: !!config && !!sessions, authenticated: false, owner: null, installationUrl: null };
+  const result = { view, id: null };
+  if (!config || !sessions) return result;
   const payload = await readSignedCookie(cookieValue(request, SESSION_COOKIE), config.sessionSecret);
   if (!payload || payload.purpose !== 'owner-session' || payload.sub !== config.ownerId ||
     !validTimes(payload, now, SESSION_SECONDS) || typeof payload.login !== 'string' ||
-    !/^[A-Za-z0-9-]{1,39}$/.test(payload.login)) return result;
+    !/^[A-Za-z0-9-]{1,39}$/.test(payload.login) || typeof payload.sid !== 'string' ||
+    !/^[A-Za-z0-9_-]{43}$/.test(payload.sid)) return result;
+  if (!await sessions.active(payload.sid, config.ownerId, payload.login, payload.iat as number, payload.exp as number, now)) return result;
   return {
-    ...result, authenticated: true, owner: { id: config.ownerId, login: payload.login },
-    installationUrl: config.appSlug ? `https://github.com/apps/${config.appSlug}/installations/new` : null,
+    id: payload.sid,
+    view: {
+      ...view, authenticated: true, owner: { id: config.ownerId, login: payload.login },
+      installationUrl: config.appSlug ? `https://github.com/apps/${config.appSlug}/installations/new` : null,
+    },
   };
 }
 
 // Explicit dependencies make provider failures and cookie lifetimes testable.
-export async function authRoute(request: Request, env: Bindings, options: {
-  fetcher?: Fetcher; now?: number;
-} = {}): Promise<Response | null> {
+interface AuthOptions { fetcher?: Fetcher; now?: number; sessions?: SessionStore; }
+
+export async function authRoute(request: Request, env: Bindings, options: AuthOptions = {}): Promise<Response | null> {
   const url = new URL(request.url);
   const routes = new Map([
     ['/api/auth/session', 'GET'], ['/api/auth/login', 'GET'],
-    ['/api/auth/callback', 'GET'], ['/api/auth/logout', 'POST'], ['/api/admin/installation', 'GET'],
+    ['/api/auth/callback', 'GET'], ['/api/auth/logout', 'POST'], ['/api/auth/logout-all', 'POST'], ['/api/admin/installation', 'GET'],
     ['/api/admin/repositories', 'GET'],
   ]);
   const method = routes.get(url.pathname);
   if (!method) return null;
   if (request.method !== method) return json({ error: 'Method not allowed' }, 405, { Allow: method });
+  try { return await configuredAuthRoute(request, env, options, url); }
+  catch {
+    // Storage exceptions can contain SQL, bindings or implementation details.
+    console.warn({ event: 'owner_session_unavailable' });
+    return json({ error: 'Owner session storage unavailable' }, 503);
+  }
+}
+
+async function configuredAuthRoute(request: Request, env: Bindings, options: AuthOptions, url: URL): Promise<Response> {
   const config = authConfig(env);
   const now = Math.floor((options.now ?? Date.now()) / 1000);
-  if (url.pathname === '/api/auth/session') return json(await session(request, config, now));
-  if (!config) return json({ error: 'GitHub sign-in is not configured' }, 503);
+  const sessions = options.sessions ?? (env.DB ? new DatabaseSessions(env.DB) : null);
+  if (url.pathname === '/api/auth/session') return json((await session(request, config, sessions, now)).view);
+  if (!config || !sessions) return json({ error: 'Owner sign-in is not configured' }, 503);
   if (url.origin !== config.origin) return json({ error: 'Unexpected application origin' }, 400);
 
   if (url.pathname === '/api/auth/login') {
@@ -98,8 +115,10 @@ export async function authRoute(request: Request, env: Bindings, options: {
         verifier: payload.verifier, redirectUri: `${config.origin}/api/auth/callback`,
       }, options.fetcher ?? fetch);
       if (user.id !== config.ownerId) return fail('denied');
+      const sid = randomToken();
+      await sessions.create(sid, user.id, user.login, now, now + SESSION_SECONDS);
       const value = await signCookie({
-        purpose: 'owner-session', sub: user.id, login: user.login,
+        purpose: 'owner-session', sub: user.id, login: user.login, sid,
         iat: now, exp: now + SESSION_SECONDS,
       }, config.sessionSecret);
       return redirect(config.origin, '/settings?sign_in=success', [
@@ -111,7 +130,8 @@ export async function authRoute(request: Request, env: Bindings, options: {
     }
   }
 
-  const owner = await session(request, config, now);
+  const current = await session(request, config, sessions, now);
+  const owner = current.view;
   if (!owner.authenticated) return json({ error: 'Owner sign-in required' }, 401);
   if (url.pathname === '/api/admin/repositories') {
     if (request.headers.get('Sec-Fetch-Site') === 'cross-site') return json({ error: 'Invalid request origin' }, 403);
@@ -125,9 +145,11 @@ export async function authRoute(request: Request, env: Bindings, options: {
       return json({ error: 'Repository discovery unavailable', reason }, 503);
     }
   }
-  if (url.pathname === '/api/auth/logout') {
+  if (url.pathname === '/api/auth/logout' || url.pathname === '/api/auth/logout-all') {
     if (request.headers.get('Origin') !== config.origin ||
       request.headers.get('Sec-Fetch-Site') === 'cross-site') return json({ error: 'Invalid request origin' }, 403);
+    if (url.pathname === '/api/auth/logout-all') await sessions.revokeAll(config.ownerId);
+    else await sessions.revoke(current.id!, config.ownerId);
     return json({ ok: true }, 200, { 'Set-Cookie': clearCookie(SESSION_COOKIE) });
   }
   if (!owner.installationUrl) return json({ error: 'GitHub App installation is not configured' }, 503);

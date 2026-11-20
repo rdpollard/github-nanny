@@ -8,10 +8,14 @@ import {
   SESSION_COOKIE, SESSION_SECONDS, signCookie,
 } from '../worker/auth/cookies.ts';
 import type { Fetcher } from '../worker/auth/github.ts';
+import type { OwnerSession } from '../shared/contracts.ts';
+import type { SessionStore } from '../worker/auth/sessions.ts';
+import { memorySessions } from './helpers/sessions.ts';
 
 const origin = 'https://nanny.example';
 const now = Date.UTC(2026, 10, 19, 12);
 const nowSeconds = now / 1000;
+const sessions = memorySessions();
 // Deliberately deterministic test fixtures, never production credentials.
 const env: Bindings = {
   APP_ORIGIN: origin, GITHUB_OWNER_ID: '27035363', GITHUB_CLIENT_ID: 'Iv1_test_client',
@@ -19,8 +23,8 @@ const env: Bindings = {
   SESSION_SECRET: 'A'.repeat(43),
 };
 
-async function route(request: Request, bindings = env, options: { fetcher?: Fetcher; now?: number } = {}) {
-  const response = await authRoute(request, bindings, { now, ...options });
+async function route(request: Request, bindings = env, options: { fetcher?: Fetcher; now?: number; sessions?: SessionStore } = {}) {
+  const response = await authRoute(request, bindings, { now, sessions, ...options });
   assert.ok(response);
   return response;
 }
@@ -217,7 +221,9 @@ test('identity failures stay distinct and non-success responses cannot create se
 test('session rejects tampering, wrong purpose, invalid lifetimes, owner changes and duplicate cookies', async () => {
   const { sessionCookie, cookie: oauthCookie } = await complete();
   assert.ok(sessionCookie);
-  const original = { purpose: 'owner-session', sub: env.GITHUB_OWNER_ID, login: 'rdpollard', iat: nowSeconds, exp: nowSeconds + SESSION_SECONDS };
+  const stored = await readSignedCookie(sessionCookie.split('=')[1], env.SESSION_SECRET!);
+  assert.ok(stored);
+  const original = { purpose: 'owner-session', sub: env.GITHUB_OWNER_ID, login: 'rdpollard', sid: stored.sid, iat: nowSeconds, exp: nowSeconds + SESSION_SECONDS };
   const invalid = [
     { ...original, purpose: 'oauth-state' }, { ...original, sub: '999' },
     { ...original, iat: nowSeconds + 1, exp: nowSeconds + 1 + SESSION_SECONDS },
@@ -225,13 +231,13 @@ test('session rejects tampering, wrong purpose, invalid lifetimes, owner changes
   ];
   for (const payload of invalid) {
     const cookie = `${SESSION_COOKIE}=${await signCookie(payload, env.SESSION_SECRET!)}`;
-    assert.equal((await (await route(new Request(`${origin}/api/auth/session`, { headers: { Cookie: cookie } }))).json()).authenticated, false);
+    assert.equal((await (await route(new Request(`${origin}/api/auth/session`, { headers: { Cookie: cookie } }))).json<OwnerSession>()).authenticated, false);
   }
   for (const value of [`${sessionCookie}!`, `${sessionCookie}; ${sessionCookie}`, oauthCookie]) {
-    assert.equal((await (await route(new Request(`${origin}/api/auth/session`, { headers: { Cookie: value } }))).json()).authenticated, false);
+    assert.equal((await (await route(new Request(`${origin}/api/auth/session`, { headers: { Cookie: value } }))).json<OwnerSession>()).authenticated, false);
   }
-  assert.equal((await (await route(new Request(`${origin}/api/auth/session`, { headers: { Cookie: sessionCookie } }), env, { now: now + SESSION_SECONDS * 1000 })).json()).authenticated, false);
-  assert.equal((await (await route(new Request(`${origin}/api/auth/session`, { headers: { Cookie: sessionCookie } }), { ...env, GITHUB_OWNER_ID: '999' })).json()).authenticated, false);
+  assert.equal((await (await route(new Request(`${origin}/api/auth/session`, { headers: { Cookie: sessionCookie } }), env, { now: now + SESSION_SECONDS * 1000 })).json<OwnerSession>()).authenticated, false);
+  assert.equal((await (await route(new Request(`${origin}/api/auth/session`, { headers: { Cookie: sessionCookie } }), { ...env, GITHUB_OWNER_ID: '999' })).json<OwnerSession>()).authenticated, false);
 });
 
 test('owner routes require a session; logout requires POST and exact same origin', async () => {
@@ -256,4 +262,28 @@ test('auth endpoints reject unsupported methods and untrusted callback origins',
   assert.equal((await route(new Request(`${origin}/api/auth/login`, { method: 'POST' }))).status, 405);
   assert.equal((await route(new Request('https://evil.example/api/auth/login'))).status, 400);
   assert.equal((await route(new Request('https://evil.example/api/auth/callback?code=code'))).status, 400);
+});
+
+test('legacy signed cookies and missing persistent storage cannot authorize owner operations', async () => {
+  const legacy = await signCookie({ purpose: 'owner-session', sub: env.GITHUB_OWNER_ID, login: 'rdpollard', iat: nowSeconds, exp: nowSeconds + SESSION_SECONDS }, env.SESSION_SECRET!);
+  const legacyRequest = new Request(`${origin}/api/auth/session`, { headers: { Cookie: `${SESSION_COOKIE}=${legacy}` } });
+  assert.equal((await (await route(legacyRequest)).json<OwnerSession>()).authenticated, false);
+  const unbound = await authRoute(new Request(`${origin}/api/auth/session`), env, { now });
+  assert.ok(unbound);
+  assert.equal((await unbound.json<OwnerSession>()).configured, false);
+  assert.equal((await authRoute(new Request(`${origin}/api/auth/login`), env, { now }))!.status, 503);
+});
+
+test('store failures fail closed and redact storage exceptions from responses and logs', async t => {
+  const logged: unknown[] = [];
+  t.mock.method(console, 'warn', (value: unknown) => { logged.push(value); });
+  const { sessionCookie } = await complete();
+  assert.ok(sessionCookie);
+  const failing: SessionStore = { ...sessions,
+    async active() { throw new Error('private-sql-and-session-detail'); },
+  };
+  const response = await route(new Request(`${origin}/api/auth/session`, { headers: { Cookie: sessionCookie } }), env, { sessions: failing });
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), { error: 'Owner session storage unavailable' });
+  assert.deepEqual(logged, [{ event: 'owner_session_unavailable' }]);
 });

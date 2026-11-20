@@ -19,5 +19,13 @@
     "redact_query_string": true,
     "logs": { "enabled": true, "invocation_logs": false },
     "traces": { "enabled": true, "head_sampling_rate": 0.1 }
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "github-nanny",
+      "database_id": "c34f0c4b-a637-4ad9-94be-c60f1b0ef9a1",
+      "migrations_dir": "migrations"
+    }
+  ]
 }

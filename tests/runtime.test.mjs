@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
+import { runtimeWorker, storedOwnerCookie } from './helpers/runtime.mjs';
 import { readSignedCookie, SESSION_COOKIE, SESSION_SECONDS, signCookie } from '../worker/auth/cookies.ts';
 import { rsaFixture, verifyAppJwt } from './helpers/keys.ts';
 
@@ -15,12 +15,12 @@ const bindings = {
 test('built Worker signs and verifies owner cookies in workerd', async () => {
   // Use the pinned SDK's explicit converter for the documented module options;
   // Miniflare 5 uses a different native constructor shape than Miniflare 4.
-  const worker = new Miniflare(convertV4MiniflareOptions({
+  const worker = await runtimeWorker({
     modules: true,
     scriptPath: 'dist/github_nanny/index.js',
     compatibilityDate: '2026-11-19',
     bindings,
-  }));
+  });
   try {
     const login = await worker.dispatchFetch(`${origin}/api/auth/login`, { redirect: 'manual' });
     assert.equal(login.status, 302);
@@ -35,9 +35,7 @@ test('built Worker signs and verifies owner cookies in workerd', async () => {
     assert.equal(invalidCallback.headers.get('Location'), `${origin}/settings?sign_in=state`);
     assert.equal(invalidCallback.headers.get('Cache-Control'), 'no-store');
 
-    const iat = Math.floor(Date.now() / 1000);
-    const value = await signCookie({ purpose: 'owner-session', sub: '27035363', login: 'rdpollard', iat, exp: iat + SESSION_SECONDS }, secret);
-    const headers = { Cookie: `${SESSION_COOKIE}=${value}` };
+    const headers = { Cookie: await storedOwnerCookie(worker, bindings) };
     const session = await worker.dispatchFetch(`${origin}/api/auth/session`, { headers });
     assert.equal((await session.json()).authenticated, true);
     const admin = await worker.dispatchFetch(`${origin}/api/admin/installation`, { headers });
@@ -61,7 +59,7 @@ test('built Worker signs App JWTs and discovers complete repository inventories 
       id, name: privateRepository ? 'hidden-private-name' : `repo-${id}`, private: privateRepository,
       owner: { id: 27035363, login: 'rdpollard' },
     });
-    const worker = new Miniflare(convertV4MiniflareOptions({
+    const worker = await runtimeWorker({
       modules: true, scriptPath: 'dist/github_nanny/index.js', compatibilityDate: '2026-11-19',
       bindings: { ...bindings, GITHUB_APP_PRIVATE_KEY: keys.pkcs1 },
       outboundService: async request => {
@@ -88,13 +86,12 @@ test('built Worker signs App JWTs and discovers complete repository inventories 
         return Response.json({ total_count: 101, repositories: page === 1
           ? Array.from({ length: 100 }, (_, i) => repository(i + 1)) : [repository(mode === 'duplicate' ? 1 : 101, true)] });
       },
-    }));
+    });
     try {
       assert.equal((await worker.dispatchFetch(`${origin}/api/admin/repositories`)).status, 401);
       assert.equal(calls.length, 0);
-      const iat = Math.floor(Date.now() / 1000);
-      const value = await signCookie({ purpose: 'owner-session', sub: '27035363', login: 'rdpollard', iat, exp: iat + SESSION_SECONDS }, secret);
-      const response = await worker.dispatchFetch(`${origin}/api/admin/repositories`, { headers: { Cookie: `${SESSION_COOKIE}=${value}` } });
+      const ownerCookie = await storedOwnerCookie(worker, bindings);
+      const response = await worker.dispatchFetch(`${origin}/api/admin/repositories`, { headers: { Cookie: ownerCookie } });
       assert.equal(response.headers.get('Cache-Control'), 'no-store');
       const body = await response.json();
       assert.equal(response.status, 200);
@@ -116,7 +113,7 @@ test('built Worker signs App JWTs and discovers complete repository inventories 
 test('built Worker exchanges OAuth codes and rejects upstream redirects in workerd', async () => {
   for (const mode of ['owner', 'exchange-redirect', 'identity-redirect']) {
     const requests = [];
-    const worker = new Miniflare(convertV4MiniflareOptions({
+    const worker = await runtimeWorker({
       modules: true,
       scriptPath: 'dist/github_nanny/index.js',
       compatibilityDate: '2026-11-19',
@@ -145,7 +142,7 @@ test('built Worker exchanges OAuth codes and rejects upstream redirects in worke
         }
         throw new Error('The Worker must never follow a provider redirect');
       },
-    }));
+    });
     try {
       const login = await worker.dispatchFetch(`${origin}/api/auth/login`, { redirect: 'manual' });
       const state = new URL(login.headers.get('Location')).searchParams.get('state');
@@ -175,7 +172,7 @@ test('built Worker verifies a required organization repository and exposes missi
   const permissions = { actions: 'read', metadata: 'read' };
   for (const missing of [false, true]) {
     const calls = [];
-    const worker = new Miniflare(convertV4MiniflareOptions({
+    const worker = await runtimeWorker({
       modules: true, scriptPath: 'dist/github_nanny/index.js', compatibilityDate: '2026-11-19',
       bindings: { ...bindings, GITHUB_APP_PRIVATE_KEY: keys.pkcs1,
         GITHUB_ORGANIZATIONS: JSON.stringify([{ id: '5925283', login: 'stormbots', repositories: [requiredName] }]) },
@@ -198,11 +195,10 @@ test('built Worker verifies a required organization repository and exposes missi
         return Response.json({ total_count: 1, repositories: [{ id: org ? 2 : 1, name: org ? requiredName : 'github-nanny', private: false,
           owner: { id: org ? 5925283 : 27035363, login: org ? 'stormbots' : 'rdpollard' } }] });
       },
-    }));
+    });
     try {
-      const iat = Math.floor(Date.now() / 1000);
-      const value = await signCookie({ purpose: 'owner-session', sub: '27035363', login: 'rdpollard', iat, exp: iat + SESSION_SECONDS }, secret);
-      const response = await worker.dispatchFetch(`${origin}/api/admin/repositories?organization=unapproved&required=other`, { headers: { Cookie: `${SESSION_COOKIE}=${value}` } });
+      const ownerCookie = await storedOwnerCookie(worker, bindings);
+      const response = await worker.dispatchFetch(`${origin}/api/admin/repositories?organization=unapproved&required=other`, { headers: { Cookie: ownerCookie } });
       assert.equal(response.status, 200);
       const body = await response.json();
       assert.equal(body.complete, !missing);

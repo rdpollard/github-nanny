@@ -4,10 +4,11 @@
 
 1. Personal utility for one GitHub account, usable in mobile, Windows, and Linux
    browsers, with PWA installation where supported.
-2. Monitor all accessible repositories, all actors, branches, trigger types,
-   and concurrent runs. Repository access and webhook coverage are constrained
-   by GitHub authorization and installation permissions; expose those limits.
-3. Notify after observed activity ends across the entire monitored scope.
+2. Monitor the four confirmed public repositories, all actors, branches, trigger
+   types, and concurrent runs. Private repositories are excluded from Actions
+   queries, idle decisions, and notifications. Repository access and webhook
+   coverage depend on authorization and installations; expose those limits.
+3. Notify after observed activity ends across the entire public monitored scope.
    Completed runs count as finished regardless of conclusion.
 4. A single global idle notification is sufficient. No failure/cancellation
    alerts or dashboard run history are needed.
@@ -28,6 +29,15 @@
 
 ## Details to settle during integration
 
+The verified monitored scope is `rdpollard/github-nanny`,
+`rdpollard/locus-tether`, `rdpollard/verify`, and
+`stormbots/Tactics-Strategy-Dev-Environments`. Installation discovery sees 21
+repositories: these four public repositories and 17 private repositories.
+The owner explicitly chose to exclude the private repositories from monitoring.
+An owner-only access inventory/count does not authorize private Actions queries.
+Changes to the monitored set must be deliberate; an unexpectedly private
+required repository must become a coverage gap rather than expose its activity.
+
 - GitHub has nonterminal states beyond queued/running, including requested,
   pending, and waiting for approval. Proposed conservative default: these block
   idle too, since the workflow is unfinished. Confirm that policy before launch.
@@ -35,15 +45,16 @@
   may need separate installation or a polling fallback. A coverage gap must be
   visible, not silently treated as inactivity. Sign-in alone cannot grant every
   repository's webhook permissions.
-- The user currently monitors public repositories. A future private repository
-  must not be exposed automatically through the public dashboard. Handle that
-  access change deliberately during integration.
+- Private repository activity must not affect public busy/idle or notification
+  decisions. Repository visibility changes must be revalidated before activity
+  is exposed through the public dashboard or a push notification.
 - Number of repositories, run volume, and actual mobile browser determine scan
   cadence, API budget, and final installation/push checks.
 
 ## Notification acceptance criteria
 
 - First empty sync: no notification.
+- Private repository activity: no status queries, no activity latch and no push.
 - Existing or newly observed active runs: arm the next idle transition.
 - Last run completes, fails, or is cancelled: reconcile all covered repositories.
 - Other runs remain: no notification.

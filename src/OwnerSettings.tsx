@@ -33,11 +33,11 @@ export function OwnerSettings() {
     return () => controller.abort();
   }, []);
 
-  async function signOut() {
+  async function signOut(allDevices = false) {
     setSigningOut(true);
     setError(null);
     try {
-      const response = await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+      const response = await fetch(allDevices ? '/api/auth/logout-all' : '/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
       if (!response.ok) throw new Error('Sign-out unavailable');
       setDiscovery(null);
       setDiscoveryError(null);
@@ -85,7 +85,10 @@ export function OwnerSettings() {
             <p>Signed in as <strong>{session.owner.login}</strong>.</p>
             {session.installationUrl && <Button asChild><a href={session.installationUrl} target="_blank" rel="noopener noreferrer">Install or manage GitHub App<ExternalLink aria-hidden="true" /></a></Button>}
             <p className="text-sm text-muted-foreground">Owner sign-in is ready. Live repository monitoring is not connected yet.</p>
-            <Button variant="outline" onClick={() => { void signOut(); }} disabled={signingOut || checking}><LogOut aria-hidden="true" />{signingOut ? 'Signing out…' : 'Sign out'}</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => { void signOut(); }} disabled={signingOut || checking}><LogOut aria-hidden="true" />{signingOut ? 'Signing out…' : 'Sign out'}</Button>
+              <Button variant="outline" onClick={() => { void signOut(true); }} disabled={signingOut || checking}>Sign out all devices</Button>
+            </div>
           </>}
         </CardContent>
       </Card>

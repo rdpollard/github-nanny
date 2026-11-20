@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import api from '../worker/index.ts';
+import type { DashboardSnapshot } from '../shared/contracts.ts';
 
 test('unconfigured monitor reports unknown, not idle, with no caching', async () => {
   const response = await api.fetch(new Request('https://example.com/api/status'));
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('Cache-Control'), 'no-store');
-  const data = await response.json();
+  const data = await response.json<DashboardSnapshot>();
   assert.equal(data.phase, 'unknown');
   assert.equal(data.connected, false);
 });

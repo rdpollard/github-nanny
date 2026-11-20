@@ -22,14 +22,18 @@
 - [x] Add fixed sign-in failure outcomes and credential-redaction regression tests.
 - [x] Exercise code exchange, identity lookup and redirect rejection in workerd.
 - [x] Verify real owner GitHub App authorization after registration and deployment.
-- [ ] Add server-side revocation/disconnect handling before broader owner writes.
+- [x] Implement D1-backed owner session revocation, including all-device sign-out.
+- [ ] Deploy persistent sessions and verify real browser sign-in/sign-out.
+- [ ] Add monitoring disconnect handling before live configuration mutations.
+- [x] Create D1 database and add the first session migration.
 - [ ] Add D1 migrations and persist verified installation/repository inventories.
 - [x] Implement explicit owner-only installation/repository access check with pagination.
 - [x] Deploy the owner-only repository access check after CI.
 - [x] Verify the real App key and personal repository inventory in the owner's browser.
 - [x] Implement allowlisted organization inventories and required public repository checks.
 - [x] Deploy organization support with `stormbots` configured after CI.
-- [ ] Enable and verify the separate `stormbots` installation and required repository.
+- [x] Enable and verify the separate `stormbots` installation and required repository.
+- [x] Confirm public-only monitoring: four public repositories; 17 private repos excluded.
 - [ ] Implement signature-verified webhooks, deduplication and event ordering.
 - [ ] Track all run IDs/attempts; test simultaneous runs of the same workflow.
 - [ ] Provide active-run API with scope/freshness and access failure handling.

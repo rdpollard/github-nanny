@@ -8,6 +8,8 @@ import { appJwt } from '../worker/github/jwt.ts';
 import { discoverRepositories, DiscoveryError } from '../worker/github/discovery.ts';
 import worker from '../worker/index.ts';
 import { rsaFixture, verifyAppJwt } from './helpers/keys.ts';
+import type { DashboardSnapshot } from '../shared/contracts.ts';
+import { memorySessions } from './helpers/sessions.ts';
 
 const keys = await rsaFixture();
 const now = Date.UTC(2026, 10, 19, 12);
@@ -108,7 +110,7 @@ test('empty and selected installations are inventories, never claims of global i
   assert.equal(result.repositoryCount, 0);
   assert.equal(result.selection, 'selected');
   const status = await worker.fetch(new Request('https://nanny.example/api/status'), env);
-  const snapshot = await status.json();
+  const snapshot = await status.json<DashboardSnapshot>();
   assert.equal(snapshot.phase, 'unknown');
   assert.equal(snapshot.connected, false);
 });
@@ -169,12 +171,15 @@ test('the discovery route requires owner authorization before key use or provide
   const logged: unknown[] = [];
   t.mock.method(console, 'warn', (value: unknown) => { logged.push(value); });
   let calls = 0;
+  const sessions = memorySessions();
   const fetcher: Fetcher = async () => { calls++; throw new Error('private-provider-detail'); };
-  const route = (request: Request, bindings = env) => authRoute(request, bindings, { now, fetcher });
+  const route = (request: Request, bindings = env) => authRoute(request, bindings, { now, fetcher, sessions });
   const path = 'https://nanny.example/api/admin/repositories';
   assert.equal((await route(new Request(path)))!.status, 401);
   assert.equal((await route(new Request(path, { method: 'POST' })))!.status, 405);
-  const value = await signCookie({ purpose: 'owner-session', sub: config.ownerId, login: 'rdpollard', iat: now / 1000, exp: now / 1000 + SESSION_SECONDS }, config.sessionSecret);
+  const sid = 'A'.repeat(43);
+  await sessions.create(sid, config.ownerId, 'rdpollard', now / 1000, now / 1000 + SESSION_SECONDS);
+  const value = await signCookie({ purpose: 'owner-session', sub: config.ownerId, login: 'rdpollard', sid, iat: now / 1000, exp: now / 1000 + SESSION_SECONDS }, config.sessionSecret);
   const cookie = `${SESSION_COOKIE}=${value}`;
   assert.equal((await route(new Request(path, { headers: { Cookie: cookie, 'Sec-Fetch-Site': 'cross-site' } })))!.status, 403);
   assert.equal(calls, 0);

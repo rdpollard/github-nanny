@@ -1,0 +1,2 @@
+# Wrangler runtime declarations retain upstream formatting and are regenerated.
+worker-configuration.d.ts linguist-generated=true -whitespace
