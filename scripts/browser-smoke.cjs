@@ -56,6 +56,14 @@ const path = require('node:path');
     await page.goto(`${origin}/settings?sign_in=success`);
     await page.getByText('GitHub sign-in setup is pending.', { exact: true }).waitFor();
     assert.equal(await page.getByText('Your GitHub identity is connected.', { exact: true }).count(), 0);
+    await page.goto(`${origin}/settings?sign_in=credentials`);
+    await page.getByRole('status').filter({ hasText: "GitHub rejected the app's client ID or client secret." }).waitFor();
+    assert.equal(await page.evaluate(() => location.search), '');
+    for (const outcome of ['__proto__', 'constructor', 'unknown-provider-detail']) {
+      await page.goto(`${origin}/settings?sign_in=${outcome}`);
+      await page.getByText('GitHub sign-in setup is pending.', { exact: true }).waitFor();
+      assert.equal(await page.getByRole('status').count(), 0);
+    }
     await page.getByRole('link', { name: 'Back to dashboard', exact: true }).click();
     await page.getByRole('heading', { name: 'Status unavailable' }).waitFor();
     await page.evaluate(() => navigator.serviceWorker.ready);

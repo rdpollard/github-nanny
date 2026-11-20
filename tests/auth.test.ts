@@ -121,14 +121,14 @@ test('wrong, missing, duplicated, tampered or expired OAuth state makes no provi
     { query: 'code=code', cookie },
     { query: `code=code&state=${state}`, cookie: '' },
     { query: `code=code&state=${state}&state=${state}`, cookie },
-    { query: `code=one&code=two&state=${state}`, cookie },
+    { query: `code=one&code=two&state=${state}`, cookie, outcome: 'verification' },
     { query: `code=code&state=${state}`, cookie: `${cookie}; ${cookie}` },
     { query: `code=code&state=${state}`, cookie: `${cookie.slice(0, -1)}!` },
     { query: `code=code&state=${state}`, cookie, now: now + OAUTH_SECONDS * 1000 },
   ];
   for (const entry of cases) {
     const response = await route(new Request(`${origin}/api/auth/callback?${entry.query}`, { headers: { Cookie: entry.cookie } }), env, { fetcher, now: entry.now ?? now });
-    assert.equal(response.headers.get('Location'), `${origin}/settings?sign_in=failed`);
+    assert.equal(response.headers.get('Location'), `${origin}/settings?sign_in=${entry.outcome ?? 'state'}`);
     assert.ok(!response.headers.getSetCookie().some(value => value.startsWith(`${SESSION_COOKIE}=`)));
   }
   assert.equal(calls, 0);
@@ -149,17 +149,67 @@ test('another immutable user ID cannot gain owner access even with the same logi
 });
 
 test('provider errors and oversized/malformed responses fail closed', async () => {
-  for (const fetcher of [
-    async () => { throw new Error('upstream-secret-that-must-not-be-returned'); },
-    async () => Response.json({ error: 'bad_verification_code', access_token: 'token', token_type: 'bearer' }),
-    async () => new Response('not json'),
-    async () => new Response('x'.repeat(33_000)),
-    async () => new Response(null, { status: 302, headers: { Location: 'https://evil.example' } }),
-  ] satisfies Fetcher[]) {
+  for (const { fetcher, outcome } of [
+    { fetcher: async () => { throw new Error('upstream-secret-that-must-not-be-returned'); }, outcome: 'provider' },
+    { fetcher: async () => Response.json({ error: 'bad_verification_code', access_token: 'token', token_type: 'bearer' }), outcome: 'verification' },
+    { fetcher: async () => new Response('not json'), outcome: 'provider' },
+    { fetcher: async () => new Response('x'.repeat(33_000)), outcome: 'provider' },
+    { fetcher: async () => new Response(null, { status: 302, headers: { Location: 'https://evil.example' } }), outcome: 'provider' },
+  ] satisfies { fetcher: Fetcher; outcome: string }[]) {
     const { redirect, cookie } = await start();
     const response = await route(new Request(`${origin}/api/auth/callback?code=code&state=${redirect.searchParams.get('state')}`, { headers: { Cookie: cookie } }), env, { fetcher });
-    assert.equal(response.headers.get('Location'), `${origin}/settings?sign_in=failed`);
+    assert.equal(response.headers.get('Location'), `${origin}/settings?sign_in=${outcome}`);
     assert.equal(await response.text(), '');
+  }
+});
+
+test('provider diagnostics expose only fixed outcomes, never upstream payloads or credentials', async t => {
+  const logged: unknown[] = [];
+  t.mock.method(console, 'warn', (value: unknown) => { logged.push(value); });
+  const privateDetail = 'test-upstream-detail-must-not-appear';
+  const cases = [
+    { error: 'incorrect_client_credentials', status: 200, outcome: 'credentials' },
+    { error: 'incorrect_client_credentials', status: 400, outcome: 'credentials' },
+    { error: 'bad_verification_code', status: 200, outcome: 'verification' },
+    { error: 'redirect_uri_mismatch', status: 400, outcome: 'callback' },
+    { error: privateDetail, status: 400, outcome: 'provider' },
+    { error: '', status: 200, outcome: 'provider' },
+  ];
+  for (const entry of cases) {
+    const { redirect, cookie } = await start();
+    let calls = 0;
+    const response = await route(new Request(`${origin}/api/auth/callback?code=code&state=${redirect.searchParams.get('state')}`, { headers: { Cookie: cookie } }), env, {
+      fetcher: async () => {
+        calls++;
+        return Response.json({ error: entry.error, error_description: privateDetail, error_uri: `https://example.com/${privateDetail}`, access_token: privateDetail }, { status: entry.status });
+      },
+    });
+    assert.equal(calls, 1, 'A failed exchange must never request a user identity');
+    assert.equal(response.headers.get('Location'), `${origin}/settings?sign_in=${entry.outcome}`);
+    assert.deepEqual(logged.at(-1), { event: 'github_signin_failed', reason: entry.outcome });
+    assert.ok(!response.headers.getSetCookie().some(value => value.startsWith(`${SESSION_COOKIE}=`)));
+    for (const privateValue of [privateDetail, env.GITHUB_CLIENT_SECRET!, env.SESSION_SECRET!]) {
+      assert.ok(!JSON.stringify([...response.headers]).includes(privateValue));
+      assert.ok(!JSON.stringify(logged).includes(privateValue));
+    }
+  }
+});
+
+test('identity failures stay distinct and non-success responses cannot create sessions', async t => {
+  t.mock.method(console, 'warn', () => {});
+  for (const mode of ['exchange-http', 'identity-http', 'identity-body', 'identity-network']) {
+    const { redirect, cookie } = await start();
+    const response = await route(new Request(`${origin}/api/auth/callback?code=code&state=${redirect.searchParams.get('state')}`, { headers: { Cookie: cookie } }), env, {
+      fetcher: async input => {
+        if (String(input) === 'https://github.com/login/oauth/access_token') {
+          return Response.json({ access_token: 'test-token', token_type: 'bearer' }, { status: mode === 'exchange-http' ? 400 : 200 });
+        }
+        if (mode === 'identity-network') throw new Error('private-provider-error');
+        return Response.json({ id: mode === 'identity-body' ? 'invalid-id' : 27035363, login: 'rdpollard' }, { status: mode === 'identity-http' ? 401 : 200 });
+      },
+    });
+    assert.equal(response.headers.get('Location'), `${origin}/settings?sign_in=${mode === 'exchange-http' ? 'provider' : 'identity'}`);
+    assert.ok(!response.headers.getSetCookie().some(value => value.startsWith(`${SESSION_COOKIE}=`)));
   }
 });
 

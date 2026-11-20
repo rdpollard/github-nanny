@@ -1,23 +1,19 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ExternalLink, Lock, LogOut } from 'lucide-react';
-import type { OwnerSession } from '../shared/contracts';
+import { SIGN_IN_MESSAGES, type OwnerSession, type SignInOutcome } from '../shared/contracts';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
-
-const notices: Record<string, string> = {
-  failed: 'Sign-in could not be completed. Please try again.',
-  denied: 'This GitHub account is not the configured dashboard owner.',
-  cancelled: 'GitHub sign-in was cancelled.',
-  success: 'Your GitHub identity is connected.',
-};
 
 export function OwnerSettings() {
   const [session, setSession] = useState<OwnerSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
-  const [outcome] = useState(() => new URLSearchParams(location.search).get('sign_in'));
+  const [outcome] = useState<SignInOutcome | null>(() => {
+    const value = new URLSearchParams(location.search).get('sign_in');
+    return value && Object.hasOwn(SIGN_IN_MESSAGES, value) ? value as SignInOutcome : null;
+  });
   // A caller can edit the URL. Confirm the session before displaying success.
-  const notice = outcome === 'success' && !session?.authenticated ? undefined : notices[outcome ?? ''];
+  const notice = outcome && (outcome !== 'success' || session?.authenticated) ? SIGN_IN_MESSAGES[outcome] : undefined;
 
   useEffect(() => {
     const controller = new AbortController();

@@ -12,14 +12,21 @@ configured.
 - Public Client ID and app slug are configured for GitHub App `gh-nanny`.
 - `SESSION_SECRET` was generated with 32 random bytes and uploaded as a Worker
   secret alongside the code. Its temporary private upload file was removed.
-- `GITHUB_CLIENT_SECRET` still needs to be entered directly in Cloudflare by
-  the owner. No client secret has been sent through chat or committed.
+- The owner entered `GITHUB_CLIENT_SECRET` directly in Cloudflare. No client
+  secret has been sent through chat or committed.
 
 HTTPS checks confirmed `/settings`, `/api/health`, `/api/status` and
-`/api/auth/session` return 200. The session response is uncached and reports
-`configured: false` until the client secret is installed. Public status remains
-unknown and unconnected. Real browser authorization remains unverified; live
-monitoring and push are not implemented.
+`/api/auth/session` return 200. After secret installation the uncached session
+response reports `configured: true`. The login endpoint redirects to GitHub with
+the expected Client ID, redirect URI, S256 PKCE and secure state cookie. This
+checks configuration format, not whether GitHub accepts the secret.
+
+The first real attempt exposed a missing registered redirect URI. After the
+owner added it, the app returned a generic sign-in failure. The exact cause is
+still unconfirmed. The next code change distinguishes state, credential, code,
+redirect, exchange and identity failures using fixed outcomes, without exposing
+provider payloads. It is not deployed yet. Public status remains unknown and
+unconnected; live monitoring and push are not implemented.
 
 ## Initial deployment
 

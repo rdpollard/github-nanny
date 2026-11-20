@@ -1,10 +1,10 @@
-import type { OwnerSession } from '../../shared/contracts.ts';
+import type { OwnerSession, SignInOutcome } from '../../shared/contracts.ts';
 import { authConfig, type AuthConfig, type Bindings } from './config.ts';
 import {
   challenge, clearCookie, cookieValue, matchesNonce, OAUTH_COOKIE, OAUTH_SECONDS,
   randomToken, readSignedCookie, SESSION_COOKIE, SESSION_SECONDS, setCookie, signCookie,
 } from './cookies.ts';
-import { githubIdentity, type Fetcher } from './github.ts';
+import { GitHubAuthError, githubIdentity, type Fetcher } from './github.ts';
 
 export const privateHeaders = {
   'Cache-Control': 'no-store', Vary: 'Cookie', 'X-Content-Type-Options': 'nosniff',
@@ -74,7 +74,10 @@ export async function authRoute(request: Request, env: Bindings, options: {
 
   if (url.pathname === '/api/auth/callback') {
     const expiredCookie = clearCookie(OAUTH_COOKIE);
-    const fail = (reason: 'failed' | 'denied' | 'cancelled') => redirect(config.origin, `/settings?sign_in=${reason}`, [expiredCookie]);
+    const fail = (reason: Exclude<SignInOutcome, 'success'>) => {
+      console.warn({ event: 'github_signin_failed', reason });
+      return redirect(config.origin, `/settings?sign_in=${reason}`, [expiredCookie]);
+    };
     const payload = await readSignedCookie(cookieValue(request, OAUTH_COOKIE), config.sessionSecret);
     const state = url.searchParams.get('state');
     const code = url.searchParams.get('code');
@@ -84,9 +87,9 @@ export async function authRoute(request: Request, env: Bindings, options: {
       typeof payload.nonce !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(payload.nonce) ||
       typeof payload.verifier !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(payload.verifier) ||
       !state || !/^[A-Za-z0-9_-]{43}$/.test(state) || url.searchParams.getAll('state').length !== 1 ||
-      !await matchesNonce(state, payload.nonce, config.sessionSecret)) return fail('failed');
+      !await matchesNonce(state, payload.nonce, config.sessionSecret)) return fail('state');
     if (url.searchParams.has('error')) return fail('cancelled');
-    if (!code || code.length > 512 || url.searchParams.getAll('code').length !== 1) return fail('failed');
+    if (!code || code.length > 512 || url.searchParams.getAll('code').length !== 1) return fail('verification');
     try {
       const user = await githubIdentity({
         clientId: config.clientId, clientSecret: config.clientSecret, code,
@@ -100,10 +103,9 @@ export async function authRoute(request: Request, env: Bindings, options: {
       return redirect(config.origin, '/settings?sign_in=success', [
         expiredCookie, setCookie(SESSION_COOKIE, value, SESSION_SECONDS),
       ]);
-    } catch {
+    } catch (error) {
       // Never log the provider exception, response body, code or callback URL.
-      console.warn({ event: 'github_signin_unavailable' });
-      return fail('failed');
+      return fail(error instanceof GitHubAuthError ? error.reason : 'failed');
     }
   }
 

@@ -6,8 +6,8 @@ sign-in does not imply that live monitoring is connected. Public status remains
 unknown until that pipeline is implemented and synchronized.
 
 The owner connection code has passed CI, is merged into `main`, and is deployed.
-The session signing key is installed. The owner must still enter
-`GITHUB_CLIENT_SECRET` directly in Cloudflare before sign-in works; see below.
+The session signing key and owner-entered `GITHUB_CLIENT_SECRET` are installed.
+The real sign-in attempt is failing; its cause remains under investigation.
 
 ## Registered app
 
@@ -19,7 +19,7 @@ The owner registered `gh-nanny` and supplied these public identifiers:
 
 The Client ID and slug are configured in `wrangler.jsonc`. The registration's
 permissions and callback settings still need verification during activation.
-No client secret or private key has been supplied or committed.
+No client secret or private key has been sent through chat or committed.
 
 ## Register the GitHub App
 
@@ -31,7 +31,8 @@ behalf. Use these settings:
 | --- | --- |
 | App name | A unique name, for example `GitHub Nanny rdpollard` |
 | Homepage URL | `https://github-nanny.github-nanny.workers.dev/` |
-| Callback URL | `https://github-nanny.github-nanny.workers.dev/api/auth/callback` |
+| Redirect URI (called Callback URL in some GitHub docs) | `https://github-nanny.github-nanny.workers.dev/api/auth/callback` |
+| Allow wildcard matching | Disabled |
 | Request user authorization during installation | Disabled; sign in explicitly through `/settings` first |
 | Expiring user access tokens | Keep enabled |
 | Device flow | Not required |
@@ -44,6 +45,11 @@ Request no Contents, Workflows write, repository administration, issue or PR
 write permissions. Do not confuse the app's numeric App ID with its Client ID.
 GitHub sign-in checks the owner's immutable user ID (`27035363`), not a username
 or email address supplied by a browser. Other GitHub accounts are denied.
+
+In the registration UI, the Redirect URI input is under **Identifying and
+authorizing users**. It is separate from Homepage URL and Setup URL. Save the
+registration after editing it, then restart sign-in from `/settings` to create
+fresh browser state.
 
 Identity sign-in and App installation are separate. The installation checkbox
 stays off because an unsolicited installation OAuth callback has no browser-bound
@@ -125,10 +131,30 @@ expiry and CSRF protection. A workerd integration test verifies that the built
 Worker signs/verifies cookies in its actual runtime. Browser smoke checks cover
 the unconfigured owner screen and keep the public dashboard available.
 
-The App is registered and the approved code and session key are deployed. The
-next external step is secure client-secret installation. Then verify the actual
-browser authorization flow, including denial of another account. No scheduled
-GitHub checks or status watchers are added by this milestone.
+The App is registered and the approved code and secrets are deployed. The real
+authorization flow must still succeed, including denial of another account.
+No scheduled GitHub checks or status watchers are added by this milestone.
+
+## Sign-in failure diagnostics
+
+The diagnostic change distinguishes these fixed outcomes after deployment:
+
+| Outcome | Meaning and next step |
+| --- | --- |
+| `state` | Browser state is missing, expired, changed, or unverifiable. Start sign-in again in the same browser; avoid simultaneous sign-in tabs. |
+| `credentials` | GitHub returned `incorrect_client_credentials`. Check that the Worker uses a client secret from this App and the matching Client ID. |
+| `verification` | GitHub rejected the sign-in code, or the callback code is invalid. Start a fresh sign-in; codes cannot be reused. |
+| `callback` | GitHub returned `redirect_uri_mismatch`. Save the exact Redirect URI shown above. |
+| `provider` | The exchange failed due to an unavailable, malformed, oversized, or unrecognized response. Retry before changing credentials. |
+| `identity` | Token exchange succeeded but fetching/validating the user identity failed. Investigate GitHub API availability or access. |
+
+`configured: true` means required settings pass local format checks. It does not
+prove the client secret is correct or that GitHub will accept the exchange.
+Authentication logs contain only the fixed `github_signin_failed` event and an
+allowlisted outcome. Provider error descriptions, URLs, codes, tokens, secrets
+and exception text are never copied into responses or application logs. Unknown
+outcome query values are ignored; the browser still verifies the session before
+displaying a success notice.
 
 ## References
 
