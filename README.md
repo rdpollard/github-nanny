@@ -37,7 +37,7 @@ This is the foundation and owner connection code, not a live monitor yet. It inc
   status and notification creation stay disabled until continuous monitoring is ready.
 
 - A signed webhook receiver, delivery deduplication and latest-attempt ordering,
-  implemented and awaiting CI/deployment and dedicated secret setup.
+  deployed and awaiting dedicated secret setup and real delivery verification.
 
 Webhook activation, continuous reconciliation, and actual push delivery
 are the next milestones. The decision function is not

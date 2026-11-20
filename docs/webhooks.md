@@ -1,7 +1,7 @@
 # Signed GitHub event receiver
 
-The receiver is implemented and awaits CI/deployment. Keep GitHub webhooks
-inactive until that deployment completes and both services have the same secret.
+The receiver is deployed. Keep GitHub webhooks inactive until both services
+have the same dedicated secret.
 Continuous scans, public live status and Web Push are separate milestones.
 
 ## Owner setup after deployment

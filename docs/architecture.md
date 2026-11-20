@@ -19,7 +19,7 @@ repository inventory check. D1 session storage is deployed and verified. Saved
 public scope and disconnect handlers are deployed and owner-verified. A manual
 owner Actions check is deployed and verified for empty and running scans, with
 durable state verified in hosted D1. Signed event ingestion is implemented,
-awaiting CI/deployment and dedicated secret setup; scheduled handlers and push
+deployed and awaiting dedicated secret setup; scheduled handlers and push
 remain planned. See
 roadmap.md for boundaries and github-connection.md for the sign-in contract.
 
