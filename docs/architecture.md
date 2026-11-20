@@ -78,26 +78,43 @@ and a 60-second clock-skew allowance. GitHub's PKCS#1 PEM key is wrapped as
 PKCS#8 for native Web Crypto import; unencrypted PKCS#8 is also accepted. No key
 material or token enters the frontend. Keys must be RSA with 2048–8192 bits.
 
-The owner login from the signed session locates the App installation; the
-returned immutable account ID must match the configured owner. The personal
-installation must be active and grant only Actions: read and Metadata: read.
-An installation token is requested with exactly those permissions and no
+The owner login from the signed session locates the personal App installation.
+Additional organizations come from the server's `GITHUB_ORGANIZATIONS` JSON
+allowlist, using immutable organization IDs, login names and required public
+repository names. Each returned account ID and User/Organization type must
+match its configured scope. All installations must be active and grant only
+Actions: read and Metadata: read. A separate installation token is requested
+with exactly those permissions and no
 repository subset. Tokens exist only within the request and expire at GitHub;
 they are neither persisted nor returned to the browser.
 
 Repository pages use fixed api.github.com paths, with 100 items per page and a
-20-page budget (at most 22 outbound requests for this operation). Declared totals
+20-page budget per account. A shared 40-request budget bounds the entire check,
+including installation lookups and token creation. Declared totals
 must remain consistent and match unique IDs; duplicates, short/empty pages with
 remaining items, extra next links, foreign owners, malformed data, and over-budget
-or over-2-MiB page responses fail the entire check. Redirects are rejected in
+or over-2-MiB page responses reject that account's inventory. Redirects are rejected in
 manual mode. Fixed error categories handle provider failures without copying
 provider bodies or exception text into logs or HTTP responses.
 
 The response exposes public repository names/links, the private repository count,
-and whether the installation uses All or selected repositories. It describes
-only that personal-account installation. It cannot prove coverage for other
-accounts' collaborator repositories or establish global idle. The public status
-API remains unknown/unconnected, and a failed UI retry clears the old inventory.
+and whether each installation uses All or selected repositories. Missing or
+unapproved installations are explicit account failures; missing required public
+repositories are listed from configuration. The overall result is complete only
+when every configured account succeeds, every required repository is visible,
+and the personal account uses All repositories. A selected organization
+installation can satisfy its explicit required-repository floor.
+
+Production requires `stormbots/Tactics-Strategy-Dev-Environments` under immutable
+organization ID `5925283`. Other accounts installing the public App are ignored,
+and browser parameters cannot expand scope. Missing/blank/malformed organization
+configuration fails closed; local personal-only tests explicitly use `[]`.
+
+This is still not an inventory of every collaborator repository accessible to
+the GitHub user. Coverage outside the configured accounts remains unverified.
+The check cannot establish global idle. The public status API remains unknown
+and unconnected. A failed UI retry clears the old report; a partial report
+labels the missing accounts and cannot claim configured access is complete.
 
 ## Idle decision and races
 

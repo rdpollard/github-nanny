@@ -14,7 +14,7 @@ const now = Date.UTC(2026, 10, 19, 12);
 const env: Bindings = {
   APP_ORIGIN: 'https://nanny.example', GITHUB_OWNER_ID: '27035363', GITHUB_CLIENT_ID: 'Iv1_test_client',
   GITHUB_CLIENT_SECRET: 'test-client-secret-only-for-fixtures', SESSION_SECRET: 'A'.repeat(43),
-  GITHUB_APP_SLUG: 'github-nanny-test', GITHUB_APP_PRIVATE_KEY: keys.pkcs1,
+  GITHUB_APP_SLUG: 'github-nanny-test', GITHUB_APP_PRIVATE_KEY: keys.pkcs1, GITHUB_ORGANIZATIONS: '[]',
 };
 const config = authConfig(env)!;
 const permissions = { actions: 'read', metadata: 'read' };

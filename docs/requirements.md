@@ -20,6 +20,11 @@
    deploy to a low-cost managed host. Cloudflare Workers is the chosen target.
 9. A link back to a matching Codex chat is optional. Automatic messaging into
    Codex is not a dependency of the MVP and has no verified integration yet.
+10. `stormbots/Tactics-Strategy-Dev-Environments` is mandatory alongside the
+    personal repositories. Its owner is organization `stormbots` (immutable ID
+    `5925283`). A personal installation alone does not meet the requirement.
+    Missing organization approval, installation, or repository access must remain
+    an explicit coverage gap and cannot support a future global idle assertion.
 
 ## Details to settle during integration
 

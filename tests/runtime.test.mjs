@@ -9,7 +9,7 @@ const secret = 'A'.repeat(43); // Test fixture only.
 const bindings = {
   APP_ORIGIN: origin, GITHUB_OWNER_ID: '27035363', GITHUB_CLIENT_ID: 'Iv1_test_client',
   GITHUB_CLIENT_SECRET: 'test-client-secret-only-for-fixtures',
-  SESSION_SECRET: secret, GITHUB_APP_SLUG: 'github-nanny-test',
+  SESSION_SECRET: secret, GITHUB_APP_SLUG: 'github-nanny-test', GITHUB_ORGANIZATIONS: '[]',
 };
 
 test('built Worker signs and verifies owner cookies in workerd', async () => {
@@ -97,12 +97,13 @@ test('built Worker signs App JWTs and discovers complete repository inventories 
       const response = await worker.dispatchFetch(`${origin}/api/admin/repositories`, { headers: { Cookie: `${SESSION_COOKIE}=${value}` } });
       assert.equal(response.headers.get('Cache-Control'), 'no-store');
       const body = await response.json();
-      assert.equal(response.status, mode === 'success' ? 200 : 503);
+      assert.equal(response.status, 200);
+      assert.equal(body.complete, mode === 'success');
       if (mode === 'success') {
         assert.equal(body.repositoryCount, 101);
         assert.equal(body.repositories.length, 100);
         assert.equal(body.privateRepositoryCount, 1);
-      } else assert.equal(body.reason, mode === 'duplicate' ? 'incomplete' : 'unavailable');
+      } else assert.equal(body.accounts[0].reason, mode === 'duplicate' ? 'incomplete' : 'unavailable');
       assert.equal(calls.length, mode === 'redirect' ? 3 : 4);
       assert.ok(!JSON.stringify(body).includes('hidden-private-name'));
       assert.ok(!JSON.stringify(body).includes('test-installation-token'));
@@ -164,6 +165,57 @@ test('built Worker exchanges OAuth codes and rejects upstream redirects in worke
         const verified = await worker.dispatchFetch(`${origin}/api/auth/session`, { headers: { Cookie: session.split(';')[0] } });
         assert.equal((await verified.json()).authenticated, true);
       } else assert.equal(session, undefined);
+    } finally { await worker.dispose(); }
+  }
+});
+
+test('built Worker verifies a required organization repository and exposes missing installation coverage', async () => {
+  const keys = await rsaFixture();
+  const requiredName = 'Tactics-Strategy-Dev-Environments';
+  const permissions = { actions: 'read', metadata: 'read' };
+  for (const missing of [false, true]) {
+    const calls = [];
+    const worker = new Miniflare(convertV4MiniflareOptions({
+      modules: true, scriptPath: 'dist/github_nanny/index.js', compatibilityDate: '2026-11-19',
+      bindings: { ...bindings, GITHUB_APP_PRIVATE_KEY: keys.pkcs1,
+        GITHUB_ORGANIZATIONS: JSON.stringify([{ id: '5925283', login: 'stormbots', repositories: [requiredName] }]) },
+      outboundService: async request => {
+        const url = new URL(request.url);
+        calls.push(url.pathname);
+        if (url.pathname === '/users/rdpollard/installation' || url.pathname === '/orgs/stormbots/installation') {
+          const org = url.pathname.startsWith('/orgs/');
+          if (org && missing) return Response.json({}, { status: 404 });
+          return Response.json({ id: org ? 8 : 7, account: { id: org ? 5925283 : 27035363, type: org ? 'Organization' : 'User' },
+            permissions, suspended_at: null, repository_selection: org ? 'selected' : 'all',
+            client_id: bindings.GITHUB_CLIENT_ID, app_slug: bindings.GITHUB_APP_SLUG });
+        }
+        if (url.pathname === '/app/installations/7/access_tokens' || url.pathname === '/app/installations/8/access_tokens') {
+          const org = url.pathname.includes('/8/');
+          return Response.json({ token: org ? 'test-org-token' : 'test-personal-token', expires_at: new Date(Date.now() + 3_600_000).toISOString(), permissions, repository_selection: org ? 'selected' : 'all' }, { status: 201 });
+        }
+        assert.equal(url.pathname, '/installation/repositories');
+        const org = request.headers.get('Authorization') === 'Bearer test-org-token';
+        return Response.json({ total_count: 1, repositories: [{ id: org ? 2 : 1, name: org ? requiredName : 'github-nanny', private: false,
+          owner: { id: org ? 5925283 : 27035363, login: org ? 'stormbots' : 'rdpollard' } }] });
+      },
+    }));
+    try {
+      const iat = Math.floor(Date.now() / 1000);
+      const value = await signCookie({ purpose: 'owner-session', sub: '27035363', login: 'rdpollard', iat, exp: iat + SESSION_SECONDS }, secret);
+      const response = await worker.dispatchFetch(`${origin}/api/admin/repositories?organization=unapproved&required=other`, { headers: { Cookie: `${SESSION_COOKIE}=${value}` } });
+      assert.equal(response.status, 200);
+      const body = await response.json();
+      assert.equal(body.complete, !missing);
+      assert.equal(body.accounts.length, 2);
+      assert.equal(body.accounts[0].complete, true);
+      if (missing) {
+        assert.equal(body.accounts[1].reason, 'not_installed');
+        assert.deepEqual(body.accounts[1].missingRepositories, [requiredName]);
+      } else assert.ok(body.repositories.some(repository => repository.name === `stormbots/${requiredName}`));
+      assert.ok(!calls.some(path => path.includes('unapproved') || path.includes('/actions/')));
+      assert.equal(calls.length, missing ? 4 : 6);
+      const status = await worker.dispatchFetch(`${origin}/api/status`);
+      assert.equal((await status.json()).phase, 'unknown');
     } finally { await worker.dispose(); }
   }
 });

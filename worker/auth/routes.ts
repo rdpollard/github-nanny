@@ -5,7 +5,7 @@ import {
   randomToken, readSignedCookie, SESSION_COOKIE, SESSION_SECONDS, setCookie, signCookie,
 } from './cookies.ts';
 import { GitHubAuthError, githubIdentity, type Fetcher } from './github.ts';
-import { discoverRepositories, DiscoveryError } from '../github/discovery.ts';
+import { checkRepositoryAccess, DiscoveryError } from '../github/discovery.ts';
 
 export const privateHeaders = {
   'Cache-Control': 'no-store', Vary: 'Cookie', 'X-Content-Type-Options': 'nosniff',
@@ -116,7 +116,7 @@ export async function authRoute(request: Request, env: Bindings, options: {
   if (url.pathname === '/api/admin/repositories') {
     if (request.headers.get('Sec-Fetch-Site') === 'cross-site') return json({ error: 'Invalid request origin' }, 403);
     try {
-      return json(await discoverRepositories(env, config, owner.owner!.login, {
+      return json(await checkRepositoryAccess(env, config, owner.owner!.login, {
         fetcher: options.fetcher, now: options.now,
       }));
     } catch (error) {

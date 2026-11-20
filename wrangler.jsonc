@@ -11,7 +11,8 @@
     "APP_ORIGIN": "https://github-nanny.github-nanny.workers.dev",
     "GITHUB_OWNER_ID": "27035363",
     "GITHUB_CLIENT_ID": "Iv23liTv0KKizj08FARz",
-    "GITHUB_APP_SLUG": "gh-nanny"
+    "GITHUB_APP_SLUG": "gh-nanny",
+    "GITHUB_ORGANIZATIONS": "[{\"id\":\"5925283\",\"login\":\"stormbots\",\"repositories\":[\"Tactics-Strategy-Dev-Environments\"]}]"
   },
   "observability": {
     "enabled": true,

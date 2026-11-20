@@ -62,8 +62,9 @@ automatically. Verify the account before deployment, and set
 The initial scaffold can be deployed for UI review, but will still report
 unknown and cannot send notifications. Owner sign-in code is implemented in
 `main` and deployed with its secrets, and real owner sign-in is verified. The App
-is installed; the explicit repository access check is deployed and needs real
-inventory verification. Live monitoring is not implemented.
+is installed; the deployed access check verified the personal inventory. The
+organization extension and separate `stormbots` installation are still pending.
+Live monitoring is not implemented.
 
 An interactive Wrangler login does not authenticate GitHub Actions. CI requires
 its own account-scoped Cloudflare API token. Prefer an account-owned token with
@@ -86,8 +87,9 @@ App `gh-nanny` is registered and its public identifiers are configured. Follow
 installation. Keep webhooks inactive until ingestion is implemented. When that
 handler exists, subscribe to relevant Actions, installation, and repository
 events. The owner reports installing on all personal-account repositories, but
-server-side verification remains required. Repositories owned by
-other accounts/organizations require their own access and installation decision.
+personal access is verified. The required `stormbots` repository needs a separate
+organization installation and the organization support described in the
+connection guide. Other collaborator repositories still need explicit coverage.
 
 The implementation provides an owner GitHub ID allowlist and owner-only
 session. GitHub sign-in does not require a custom password database. Its client

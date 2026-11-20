@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ExternalLink, Lock, LogOut } from 'lucide-react';
-import { DISCOVERY_MESSAGES, SIGN_IN_MESSAGES, type OwnerSession, type RepositoryDiscovery, type SignInOutcome } from '../shared/contracts';
+import { DISCOVERY_MESSAGES, SIGN_IN_MESSAGES, type OwnerSession, type RepositoryAccessReport, type SignInOutcome } from '../shared/contracts';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 
@@ -9,7 +9,7 @@ export function OwnerSettings() {
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [discovery, setDiscovery] = useState<RepositoryDiscovery | null>(null);
+  const [discovery, setDiscovery] = useState<RepositoryAccessReport | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   const [outcome] = useState<SignInOutcome | null>(() => {
     const value = new URLSearchParams(location.search).get('sign_in');
@@ -90,17 +90,29 @@ export function OwnerSettings() {
         </CardContent>
       </Card>
       {session?.authenticated && <Card className="mt-6">
-        <CardHeader><CardTitle>Repository access</CardTitle><CardDescription>Verify this personal account installation when you choose. This does not start Actions monitoring.</CardDescription></CardHeader>
+        <CardHeader><CardTitle>Repository access</CardTitle><CardDescription>Verify the configured personal and organization installations when you choose. This does not start Actions monitoring.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
           <Button onClick={() => { void checkRepositories(); }} disabled={checking || signingOut}>{checking ? 'Checking repository access…' : 'Check repository access'}</Button>
           {discoveryError && <p role="alert">{discoveryError}</p>}
           {discovery && <>
-            <p role="status">Repository access verified for {discovery.owner}: {discovery.repositoryCount} repositories ({discovery.repositories.length} public, {discovery.privateRepositoryCount} private).</p>
-            <p className="text-sm text-muted-foreground">Checked {new Date(discovery.checkedAt).toLocaleString()}. {discovery.selection === 'all' ? 'All repositories are selected for this installation.' : 'Only selected repositories are accessible. Choose All repositories in the installation to cover this account.'}</p>
-            <p className="text-sm text-muted-foreground">This checks the personal account installation. Access to repositories owned by other accounts is not verified. Private repository names are not displayed.</p>
-            {discovery.repositories.length > 0 && <ul aria-label="Accessible public repositories" className="max-h-72 space-y-2 overflow-auto">
-              {discovery.repositories.map(repository => <li key={repository.id}><a className="break-all text-sky-700 underline dark:text-sky-400" href={repository.url} target="_blank" rel="noopener noreferrer">{repository.name}</a></li>)}
-            </ul>}
+            <p role={discovery.complete ? 'status' : 'alert'}>{discovery.complete
+              ? `Configured repository access verified: ${discovery.repositoryCount} repositories (${discovery.repositories.length} public, ${discovery.privateRepositoryCount} private).`
+              : 'Repository access is incomplete. Some configured accounts or required repositories need attention.'}</p>
+            <p className="text-sm text-muted-foreground">Checked {new Date(discovery.checkedAt).toLocaleString()}. This covers only the accounts configured below; other collaborator repositories are not verified. Private repository names are not displayed.</p>
+            {discovery.accounts.map(check => <section key={check.account.id} className="space-y-3 rounded-lg border p-3">
+              <h2 className="font-semibold">{check.account.login} ({check.account.kind === 'User' ? 'Personal account' : 'Organization'})</h2>
+              {check.reason && <p role="alert">{DISCOVERY_MESSAGES[check.reason]}</p>}
+              {check.missingRepositories.length > 0 && <p className="break-all">Required public repositories not verified: {check.missingRepositories.map(name => `${check.account.login}/${name}`).join(', ')}.</p>}
+              {check.inventory && <>
+                <p>Repository access verified for {check.inventory.owner}: {check.inventory.repositoryCount} repositories ({check.inventory.repositories.length} public, {check.inventory.privateRepositoryCount} private).</p>
+                <p className="text-sm text-muted-foreground">{check.inventory.selection === 'all' ? 'All repositories are selected for this installation.' : check.account.requiresAll
+                  ? 'Only selected repositories are accessible. Choose All repositories in the installation to cover this account.'
+                  : 'Selected repositories are accessible. Every configured required repository must be included.'}</p>
+                {check.inventory.repositories.length > 0 && <ul aria-label={`Accessible public repositories for ${check.account.login}`} className="max-h-72 space-y-2 overflow-auto">
+                  {check.inventory.repositories.map(repository => <li key={repository.id}><a className="break-all text-sky-700 underline dark:text-sky-400" href={repository.url} target="_blank" rel="noopener noreferrer">{repository.name}</a></li>)}
+                </ul>}
+              </>}
+            </section>)}
           </>}
         </CardContent>
       </Card>}
