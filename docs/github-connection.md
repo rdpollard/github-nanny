@@ -146,8 +146,8 @@ monitoring pipeline is implemented. Webhooks must remain inactive.
 
 ## Save or disconnect the public scope
 
-The saved-scope change is implemented but not deployed yet. After deployment,
-the owner can use **Save public scope** to run a new access verification and
+The saved-scope change is deployed. The owner can use **Save public scope** to
+run a new access verification and
 persist only public repositories from all configured accounts. This is separate
 from **Check repository access**, which still only displays a report. No supplied
 browser inventory is trusted. Incomplete, empty or over-200-public-repository

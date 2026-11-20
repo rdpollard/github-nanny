@@ -16,7 +16,7 @@ flowchart LR
 The current implementation contains the PWA shell, honest unknown-status API,
 a pure idle-decision function, owner authorization handlers, and an owner-only
 repository inventory check. D1 session storage is deployed and verified. Saved
-public scope and disconnect handlers are implemented, awaiting CI/deployment;
+public scope and disconnect handlers are deployed, awaiting owner verification;
 scheduled handlers, webhook ingestion and push remain planned. See
 roadmap.md for boundaries and github-connection.md for the sign-in contract.
 
