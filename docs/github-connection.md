@@ -1,7 +1,8 @@
 # GitHub owner connection
 
-This change adds owner identity authorization. Repository discovery, Actions
-webhooks, D1 and notifications are separate upcoming changes. A successful
+Owner identity authorization is deployed. Owner-only repository discovery is
+implemented and awaiting CI/deployment. Actions webhooks, D1 and notifications
+are separate upcoming changes. A successful
 sign-in does not imply that live monitoring is connected. Public status remains
 unknown until that pipeline is implemented and synchronized.
 
@@ -84,10 +85,30 @@ OAuth client secret already installed:
    add a **Secret** named `GITHUB_APP_PRIVATE_KEY`. Paste the complete PEM and
    select **Deploy**. Do not send the key through chat or add it to the repo.
 
-GitHub downloads PKCS#1 RSA private keys. The upcoming backend implementation
-must handle that format securely and test JWT signing in workerd. This setup
-does not itself activate monitoring; no installed-key verification, repository
-discovery endpoint, database, webhook ingestion or scheduler exists yet.
+The owner reports saving `GITHUB_APP_PRIVATE_KEY`; Wrangler confirms that secret
+name is present without reading its value. The new backend accepts GitHub's
+PKCS#1 PEM keys and unencrypted PKCS#8, with signing tested in workerd. The real
+key and installation have not been verified by this code yet. There is still no
+database, webhook ingestion or scheduler.
+
+## Check repository access after deployment
+
+1. Sign in on `/settings` and select **Check repository access**.
+2. The backend verifies the owner installation and read permissions, requests a
+   short-lived installation token, and reads every repository page.
+3. Confirm the public repository list/count and **All repositories** selection.
+   Private names are omitted; a private count is visible only to the owner.
+
+The result covers the personal-account installation, not every collaborator
+repository the user can access elsewhere. Selected installations are clearly
+labeled. Changing, truncated or over-budget inventories are rejected rather
+than displayed as complete. The operation is limited to 20 repository pages of
+100 items; larger accounts will need the planned batch/reconciliation pipeline.
+
+The UI makes no periodic requests to this endpoint. No Actions run or job status
+is queried, and no monitor configuration is written. A failed retry clears the
+old inventory. Public status stays unknown/unconnected until the actual
+monitoring pipeline is implemented. Webhooks must remain inactive.
 
 ## Configure the Worker
 
@@ -111,6 +132,8 @@ Worker secrets (never source, browser storage or VITE_* variables):
   For a local private shell, generate with
   `node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("base64url"))'`.
   Do not paste the generated value in chat or a commit.
+- `GITHUB_APP_PRIVATE_KEY`: the complete GitHub App PEM key, as described above.
+  This is separate from the OAuth client secret and must stay a Worker Secret.
 
 Use the project's existing Wrangler version and authenticated account. Remember
 that `wrangler secret put` creates/deploys a version immediately; configure the
@@ -202,3 +225,6 @@ incompatibility again.
 - https://developers.cloudflare.com/workers/testing/miniflare/writing-tests/
 - https://developers.cloudflare.com/workers/runtime-apis/request/#requestinit
 - https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/managing-private-keys-for-github-apps
+- https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app
+- https://docs.github.com/en/rest/apps/apps#get-a-user-installation-for-the-authenticated-app
+- https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation

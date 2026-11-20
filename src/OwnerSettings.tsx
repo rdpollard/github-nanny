@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ExternalLink, Lock, LogOut } from 'lucide-react';
-import { SIGN_IN_MESSAGES, type OwnerSession, type SignInOutcome } from '../shared/contracts';
+import { DISCOVERY_MESSAGES, SIGN_IN_MESSAGES, type OwnerSession, type RepositoryDiscovery, type SignInOutcome } from '../shared/contracts';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 
@@ -8,6 +8,9 @@ export function OwnerSettings() {
   const [session, setSession] = useState<OwnerSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [discovery, setDiscovery] = useState<RepositoryDiscovery | null>(null);
+  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   const [outcome] = useState<SignInOutcome | null>(() => {
     const value = new URLSearchParams(location.search).get('sign_in');
     return value && Object.hasOwn(SIGN_IN_MESSAGES, value) ? value as SignInOutcome : null;
@@ -36,9 +39,30 @@ export function OwnerSettings() {
     try {
       const response = await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
       if (!response.ok) throw new Error('Sign-out unavailable');
+      setDiscovery(null);
+      setDiscoveryError(null);
       setSession(previous => previous && { ...previous, authenticated: false, owner: null, installationUrl: null });
     } catch { setError('Sign-out could not be completed. Please try again.'); }
     finally { setSigningOut(false); }
+  }
+
+  async function checkRepositories() {
+    setChecking(true);
+    setDiscovery(null);
+    setDiscoveryError(null);
+    try {
+      const response = await fetch('/api/admin/repositories', { cache: 'no-store', credentials: 'same-origin' });
+      if (!response.ok) {
+        const data: unknown = await response.json();
+        const reason = data && typeof data === 'object' && 'reason' in data ? data.reason : null;
+        setDiscoveryError(typeof reason === 'string' && Object.hasOwn(DISCOVERY_MESSAGES, reason)
+          ? DISCOVERY_MESSAGES[reason as keyof typeof DISCOVERY_MESSAGES]
+          : response.status === 401 ? 'Sign in again before checking repository access.' : DISCOVERY_MESSAGES.unavailable);
+        return;
+      }
+      setDiscovery(await response.json());
+    } catch { setDiscoveryError(DISCOVERY_MESSAGES.unavailable); }
+    finally { setChecking(false); }
   }
 
   return (
@@ -61,10 +85,25 @@ export function OwnerSettings() {
             <p>Signed in as <strong>{session.owner.login}</strong>.</p>
             {session.installationUrl && <Button asChild><a href={session.installationUrl} target="_blank" rel="noopener noreferrer">Install or manage GitHub App<ExternalLink aria-hidden="true" /></a></Button>}
             <p className="text-sm text-muted-foreground">Owner sign-in is ready. Live repository monitoring is not connected yet.</p>
-            <Button variant="outline" onClick={() => { void signOut(); }} disabled={signingOut}><LogOut aria-hidden="true" />{signingOut ? 'Signing out…' : 'Sign out'}</Button>
+            <Button variant="outline" onClick={() => { void signOut(); }} disabled={signingOut || checking}><LogOut aria-hidden="true" />{signingOut ? 'Signing out…' : 'Sign out'}</Button>
           </>}
         </CardContent>
       </Card>
+      {session?.authenticated && <Card className="mt-6">
+        <CardHeader><CardTitle>Repository access</CardTitle><CardDescription>Verify this personal account installation when you choose. This does not start Actions monitoring.</CardDescription></CardHeader>
+        <CardContent className="space-y-4">
+          <Button onClick={() => { void checkRepositories(); }} disabled={checking || signingOut}>{checking ? 'Checking repository access…' : 'Check repository access'}</Button>
+          {discoveryError && <p role="alert">{discoveryError}</p>}
+          {discovery && <>
+            <p role="status">Repository access verified for {discovery.owner}: {discovery.repositoryCount} repositories ({discovery.repositories.length} public, {discovery.privateRepositoryCount} private).</p>
+            <p className="text-sm text-muted-foreground">Checked {new Date(discovery.checkedAt).toLocaleString()}. {discovery.selection === 'all' ? 'All repositories are selected for this installation.' : 'Only selected repositories are accessible. Choose All repositories in the installation to cover this account.'}</p>
+            <p className="text-sm text-muted-foreground">This checks the personal account installation. Access to repositories owned by other accounts is not verified. Private repository names are not displayed.</p>
+            {discovery.repositories.length > 0 && <ul aria-label="Accessible public repositories" className="max-h-72 space-y-2 overflow-auto">
+              {discovery.repositories.map(repository => <li key={repository.id}><a className="break-all text-sky-700 underline dark:text-sky-400" href={repository.url} target="_blank" rel="noopener noreferrer">{repository.name}</a></li>)}
+            </ul>}
+          </>}
+        </CardContent>
+      </Card>}
     </main>
   );
 }

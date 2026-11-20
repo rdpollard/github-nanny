@@ -21,12 +21,15 @@ This is the foundation and owner connection code, not a live monitor yet. It inc
   remains disabled until the GitHub App settings and secrets are configured.
 - Owner connection settings at `/settings`; this does not yet authorize live
   repository monitoring or change the public unknown-status response.
+- An owner-only repository access check with GitHub App authentication and
+  complete pagination. It runs only when the owner clicks the check button.
 
-Repository discovery, webhook ingestion, D1 persistence, live reconciliation,
-and actual push delivery are the next milestones. The decision function is not
+Webhook ingestion, D1 persistence, live reconciliation, and actual push delivery
+are the next milestones. The decision function is not
 wired to a live ingestion pipeline yet. The owner connection code is deployed;
-its secrets are installed, and real owner sign-in is verified. App installation
-and live repository discovery are still pending.
+its secrets are installed, and real owner sign-in is verified. Repository access
+checking is implemented but still needs CI, deployment and real installation
+verification. It does not start live monitoring.
 
 ## Local development
 
@@ -72,7 +75,7 @@ layout, unknown live status, service worker registration, and offline navigation
 
 ## Deployment
 
-Cloudflare Workers hosts the initial scaffold at
+Cloudflare Workers hosts the app at
 https://github-nanny.github-nanny.workers.dev/. See [deployment status](docs/deployment.md)
 for availability checks and remaining integration work. Deployment is disabled
 in GitHub Actions until you configure the credentials and enable it; see

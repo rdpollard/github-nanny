@@ -5,6 +5,7 @@ import {
   randomToken, readSignedCookie, SESSION_COOKIE, SESSION_SECONDS, setCookie, signCookie,
 } from './cookies.ts';
 import { GitHubAuthError, githubIdentity, type Fetcher } from './github.ts';
+import { discoverRepositories, DiscoveryError } from '../github/discovery.ts';
 
 export const privateHeaders = {
   'Cache-Control': 'no-store', Vary: 'Cookie', 'X-Content-Type-Options': 'nosniff',
@@ -48,6 +49,7 @@ export async function authRoute(request: Request, env: Bindings, options: {
   const routes = new Map([
     ['/api/auth/session', 'GET'], ['/api/auth/login', 'GET'],
     ['/api/auth/callback', 'GET'], ['/api/auth/logout', 'POST'], ['/api/admin/installation', 'GET'],
+    ['/api/admin/repositories', 'GET'],
   ]);
   const method = routes.get(url.pathname);
   if (!method) return null;
@@ -111,6 +113,18 @@ export async function authRoute(request: Request, env: Bindings, options: {
 
   const owner = await session(request, config, now);
   if (!owner.authenticated) return json({ error: 'Owner sign-in required' }, 401);
+  if (url.pathname === '/api/admin/repositories') {
+    if (request.headers.get('Sec-Fetch-Site') === 'cross-site') return json({ error: 'Invalid request origin' }, 403);
+    try {
+      return json(await discoverRepositories(env, config, owner.owner!.login, {
+        fetcher: options.fetcher, now: options.now,
+      }));
+    } catch (error) {
+      const reason = error instanceof DiscoveryError ? error.reason : 'unavailable';
+      console.warn({ event: 'github_discovery_failed', reason });
+      return json({ error: 'Repository discovery unavailable', reason }, 503);
+    }
+  }
   if (url.pathname === '/api/auth/logout') {
     if (request.headers.get('Origin') !== config.origin ||
       request.headers.get('Sec-Fetch-Site') === 'cross-site') return json({ error: 'Invalid request origin' }, 403);

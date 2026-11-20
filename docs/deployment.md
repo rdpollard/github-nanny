@@ -1,5 +1,14 @@
 # Deployment status
 
+## Repository discovery preparation
+
+The owner reports saving the App's read permissions, All repositories selection,
+and private key directly in Cloudflare. Wrangler's secret-name listing confirms
+`GITHUB_APP_PRIVATE_KEY`, `GITHUB_CLIENT_SECRET` and `SESSION_SECRET` are present.
+Their values were not read. The new owner-only access check is implemented and
+tested locally but is not deployed or verified with the actual installation yet.
+The live Worker remains the owner sign-in fix version recorded below.
+
 ## Owner sign-in fix deployment
 
 After main CI passed, commit `310c7a0d57a0ddc33dafbb57cd0ef24f367d1be0`

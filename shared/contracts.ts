@@ -15,6 +15,27 @@ export const SIGN_IN_MESSAGES = {
 } as const;
 export type SignInOutcome = keyof typeof SIGN_IN_MESSAGES;
 
+export const DISCOVERY_MESSAGES = {
+  setup: 'The GitHub App private key is missing or invalid. Check the Worker secret.',
+  not_installed: 'The GitHub App is not installed on the configured owner account.',
+  permissions: 'Check the installation: it must be active with Actions and Metadata read-only access.',
+  authentication: 'GitHub rejected App authentication. Check that the private key belongs to this App.',
+  rate_limited: 'GitHub has limited requests. Wait before checking repository access again.',
+  incomplete: 'The repository list could not be completed consistently. Please try again.',
+  unavailable: 'GitHub repository access could not be checked. Please try again.',
+} as const;
+export type DiscoveryFailure = keyof typeof DISCOVERY_MESSAGES;
+
+export interface RepositoryDiscovery {
+  checkedAt: string;
+  owner: string;
+  installationId: number;
+  selection: 'all' | 'selected';
+  repositoryCount: number;
+  privateRepositoryCount: number;
+  repositories: { id: number; name: string; url: string }[];
+}
+
 export interface OwnerSession {
   configured: boolean;
   authenticated: boolean;

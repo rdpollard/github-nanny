@@ -23,7 +23,9 @@
 - [x] Exercise code exchange, identity lookup and redirect rejection in workerd.
 - [x] Verify real owner GitHub App authorization after registration and deployment.
 - [ ] Add server-side revocation/disconnect handling before broader owner writes.
-- [ ] Add D1 migrations and installation/repository discovery with pagination.
+- [ ] Add D1 migrations and persist verified installation/repository inventories.
+- [x] Implement explicit owner-only installation/repository access check with pagination.
+- [ ] Deploy the access check and verify the real App key and repository inventory.
 - [ ] Implement signature-verified webhooks, deduplication and event ordering.
 - [ ] Track all run IDs/attempts; test simultaneous runs of the same workflow.
 - [ ] Provide active-run API with scope/freshness and access failure handling.

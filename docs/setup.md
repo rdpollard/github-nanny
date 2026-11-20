@@ -61,8 +61,9 @@ automatically. Verify the account before deployment, and set
 
 The initial scaffold can be deployed for UI review, but will still report
 unknown and cannot send notifications. Owner sign-in code is implemented in
-`main` and deployed with its secrets, and real owner sign-in is verified. App
-installation and live repository monitoring are still pending.
+`main` and deployed with its secrets, and real owner sign-in is verified. The App
+is installed; the new explicit repository access check needs CI/deployment and
+real inventory verification. Live monitoring is not implemented.
 
 An interactive Wrangler login does not authenticate GitHub Actions. CI requires
 its own account-scoped Cloudflare API token. Prefer an account-owned token with
@@ -84,7 +85,8 @@ App `gh-nanny` is registered and its public identifiers are configured. Follow
 [the connection guide](github-connection.md) for callback settings and secret
 installation. Keep webhooks inactive until ingestion is implemented. When that
 handler exists, subscribe to relevant Actions, installation, and repository
-events and install on all personal-account repositories. Repositories owned by
+events. The owner reports installing on all personal-account repositories, but
+server-side verification remains required. Repositories owned by
 other accounts/organizations require their own access and installation decision.
 
 The implementation provides an owner GitHub ID allowlist and owner-only
@@ -92,13 +94,12 @@ session. GitHub sign-in does not require a custom password database. Its client
 secret and app private key must remain on the server. Generate a strong webhook
 secret, validate SHA-256 signatures, and store delivery IDs for idempotency.
 
-When implemented, add these using `wrangler secret put NAME` from a secure local
-terminal or Cloudflare's secrets interface, never into source files or chat:
+Already installed as Worker Secrets: `GITHUB_APP_PRIVATE_KEY`,
+`GITHUB_CLIENT_SECRET`, and `SESSION_SECRET`. Future milestones will need the
+following using `wrangler secret put NAME` from a secure local terminal or
+Cloudflare's secrets interface, never source files or chat:
 
-- `GITHUB_APP_PRIVATE_KEY`
-- `GITHUB_CLIENT_SECRET`
 - `GITHUB_WEBHOOK_SECRET`
-- `SESSION_SECRET`
 - `TOKEN_ENCRYPTION_KEY`
 - `VAPID_PRIVATE_KEY`
 
@@ -106,7 +107,7 @@ Public identifiers such as App ID, client ID, owner user ID, public VAPID key,
 and app origin will be documented alongside the integration that uses them.
 Do not add unused secrets to this scaffold.
 
-D1 database creation, bindings, migrations, callback routes, Web Push key
+D1 database creation, bindings, migrations, Web Push key
 generation, and subscription setup will be documented with their implementation.
 Separate development and production state/credentials so demo runs cannot notify
 production devices.
