@@ -21,8 +21,8 @@ dashboard showing confirmed idle across the four public repositories. A real
 signed completed-workflow event and its persisted terminal run/attempt are
 verified. Owner-only encrypted device registration and explicit test pushes are
 deployed with server keys installed and Windows/Android Vivaldi receipt verified.
-Automatic idle dispatch and retries are deployed with alerts off, pending
-explicit owner activation and real end-to-end receipt verification. See
+Automatic idle dispatch and retries are deployed and owner-enabled, pending
+real end-to-end receipt verification. See
 [idle-alerts.md](idle-alerts.md) and [reconciliation.md](reconciliation.md) for
 the runtime contracts.
 
@@ -128,7 +128,8 @@ scope on a failed operation and offers an explicit reload.
 Saved scope is preparation only: public status remains unknown/unconnected
 until the owner starts automatic checks. Manual checks remain explicit. The
 signed receiver records event evidence without calling GitHub; the scheduled
-runner reconciles only when enabled. Notification delivery remains disabled. Scan results are fenced by
+runner reconciles only when enabled. Notification delivery has a separate
+owner opt-in and readiness checks. Scan results are fenced by
 both the scope revision and the monitor revision. Scope replacement/disconnect
 atomically resets monitor state and removes pending outbox work.
 
@@ -227,7 +228,8 @@ so redelivery cannot clear a fresh owner save again. Expired/pre-scope events
 are ignored. Accepted deliveries opportunistically remove up to 50 expired
 receipts and run records after seven days; scheduled cleanup is still planned.
 Public status is exposed only after owner activation and fresh complete
-reconciliation. Notification readiness stays off in this milestone.
+reconciliation. Notification readiness additionally requires owner alert
+activation and the configured per-device delivery guards.
 
 ## Owner repository inventory
 
@@ -356,9 +358,9 @@ once display on all devices.
 | Repository monitoring state | Revalidated visibility, current access health and successful scan time |
 | Runs/attempts (implemented) | Sanitized active-run document and latest signed attempt/status with REST accounting time |
 | Webhook deliveries (implemented) | Unique delivery IDs, scope generation and receive time, with opportunistic expiry cleanup |
-| Monitor state (implemented) | Scope/revision fencing, phase, activity latch, epoch, quiet candidate, last complete scan, disabled notice readiness |
+| Monitor state (implemented) | Scope/revision fencing, phase, activity latch, epoch, quiet candidate, last complete scan, owner-controlled notice readiness |
 | Push subscriptions (Windows/Android receipt verified) | Owner-bound encrypted endpoint/keys, registration metadata and rate-limited explicit tests |
-| Notification outbox and per-device delivery (implemented, activation pending) | Atomic epoch/recipient snapshot, leases, fixed outcomes, bounded retries and expiry |
+| Notification outbox and per-device delivery (deployed and owner-enabled) | Atomic epoch/recipient snapshot, leases, fixed outcomes, bounded retries and expiry |
 
 Internal short retention for notice links/deduplication does not imply a history
 view. Avoid retaining workflow logs or full webhook payloads unnecessarily.

@@ -1,8 +1,8 @@
 # Automatic idle alerts
 
 This milestone connects confirmed global idle to encrypted per-device delivery.
-It is deployed with alerts off, pending owner activation and real end-to-end
-receipt verification. Existing registrations and push secrets were preserved;
+It is deployed and owner-enabled, pending real end-to-end receipt verification.
+Existing registrations and push secrets were preserved;
 no device needs to grant permission again.
 
 ## Activation and end-to-end verification

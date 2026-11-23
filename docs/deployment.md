@@ -96,8 +96,12 @@ owner session was fabricated or alert activation performed by these probes.
 Hosted D1 confirmed checks enabled with no errors or backoff, notice_enabled=0,
 no activation binding, no pending notices and no delivery rows. Automatic
 GitHub deployment remains disabled; the minute schedule is preserved. The next
-step is the owner's Enable idle alerts action, then actual busy-to-idle receipt,
-run-link navigation and background/lock-screen verification. See idle-alerts.md.
+step was owner activation. The owner subsequently enabled alerts; a read-only
+hosted query confirmed monitoring_enabled=1, notice_enabled=1, the activation
+binding present, two devices and no backend errors. Initial quiet remained
+silent with no pending notice/delivery. Real automatic receipt, run-link clicks
+and background/lock-screen behavior remain to be verified. See idle-alerts.md
+and release-checklist.md.
 
 ## Signed webhook deployment
 

@@ -1,10 +1,10 @@
 # Owner push devices and test notifications
 
 Owner-only device registration, encrypted subscription storage and explicit test
-notifications are deployed, with server keys installed. Actual registration and
-background receipt on owner devices remain to be verified. It does not enable automatic idle notifications, change
-the idle activity latch or dispatch pending idle epochs. Automatic delivery/retries are now implemented in the next source milestone;
-see idle-alerts.md for activation and verification.
+notifications are deployed and verified on Windows/Android Vivaldi. Registration
+and tests do not enable idle alerts; the separate owner control does that.
+Automatic idle delivery is deployed and owner-enabled. See idle-alerts.md for
+end-to-end receipt verification and delivery limits.
 
 ## Current device verification
 
@@ -21,8 +21,9 @@ quietly. Android's foreground banner presentation is controlled by browser/OS
 notification categories. Website permission settings are documented at:
 https://vivaldi.com/blog/tips/android-tips/tip-548/
 
-Automatic delivery is deployed and requires explicit owner activation; see
-[idle-alerts.md](idle-alerts.md). Alerts remain off until that action.
+Automatic delivery is deployed and the owner has enabled it; see
+[idle-alerts.md](idle-alerts.md). A new installation still requires explicit
+activation.
 
 ## Server setup after main CI
 
@@ -72,7 +73,8 @@ Cloudflare retains Worker secrets across deployments.
    separately; re-registering can reuse its existing local subscription. Owner
    sign-out revokes administration, while registrations persist for future
    background delivery. Saving/disconnecting monitoring scope does not delete
-   device registrations; automatic idle alerts remain disabled in this release.
+   device registrations. Scope changes disable automatic idle alerts until
+   deliberate reactivation.
 
 The new service worker activates on upgrade and claims existing app tabs. Reload
 settings after deployment if an older tab is still waiting for its worker. Test

@@ -3,7 +3,8 @@
 Continuous checks are deployed and owner-activated. The owner verified the
 public idle dashboard across four repositories, and a real signed completed
 workflow event is verified.
-Web Push and production idle-outbox creation remain disabled.
+Web Push and production idle-outbox creation are separately owner-enabled;
+see idle-alerts.md for the delivery guards.
 
 ## Activation after deployment
 
