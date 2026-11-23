@@ -5,6 +5,7 @@ import { DiscoveryError, githubRequest, type GitHubBudget } from './client.ts';
 import { checkRepositoryAccess } from './discovery.ts';
 import { MonitoringScopeStore, ScopeError, scopeKey, verifiedScopeRepositories } from './scope-store.ts';
 import { MonitorStore, MonitorConflict } from '../monitor-store.ts';
+import type { ScanLease } from '../monitor-control.ts';
 
 export const UNFINISHED_STATUSES = ['queued', 'in_progress', 'requested', 'waiting', 'pending'] as const;
 type Repository = SavedMonitoringScope['repositories'][number];
@@ -12,11 +13,12 @@ type Run = ActionsCheck['runs'][number];
 
 export class ActionsCheckError extends Error {
   readonly reason: ActionsCheckFailure;
+  retryAt?: number;
   constructor(reason: ActionsCheckFailure) { super('Actions check unavailable'); this.reason = reason; }
 }
 function object(value: unknown): value is Record<string, unknown> { return !!value && typeof value === 'object' && !Array.isArray(value); }
 function positive(value: unknown): value is number { return typeof value === 'number' && Number.isSafeInteger(value) && value > 0; }
-function sameRepositories(a: Repository[], b: Repository[]): boolean {
+export function sameRepositories(a: Repository[], b: Repository[]): boolean {
   return a.length === b.length && a.every(repo => b.some(other => repo.id === other.id && repo.name === other.name &&
     repo.accountId === other.accountId && repo.installationId === other.installationId && repo.url === other.url));
 }
@@ -74,10 +76,10 @@ async function repositoryRuns(repo: Repository, token: string, fetcher: Fetcher,
   return runs;
 }
 
-// An owner-triggered observation, not an idle decision or a monitoring loop.
+// A full observation shared by manual checks and the leased scheduled runner.
 // Installation tokens remain inside this request and never enter a report.
 export async function checkActions(env: Bindings, config: AuthConfig, login: string, options: {
-  fetcher?: Fetcher; now?: number;
+  fetcher?: Fetcher; now?: number; lease?: ScanLease; onUsage?: (requests: number) => void;
 } = {}): Promise<ActionsCheck> {
   if (!env.DB) throw new ActionsCheckError('unavailable');
   const fetcher = options.fetcher ?? fetch;
@@ -116,16 +118,22 @@ export async function checkActions(env: Bindings, config: AuthConfig, login: str
     if (!current.prepared || current.revision !== saved.revision) throw new ActionsCheckError('conflict');
     const observation = { scopeRevision: saved.revision, startedAt, checkedAt: new Date().toISOString(),
       repositoryCount: verified.length, runs: runs.sort((a, b) => a.repository.localeCompare(b.repository) || a.id - b.id) };
-    await monitor.complete(token, observation);
+    await monitor.complete(token, observation, options.lease);
     return observation;
   } catch (error) {
-    try { await monitor.fail(token); } catch (failure) {
+    try { await monitor.fail(token, options.lease); } catch (failure) {
       if (!(failure instanceof MonitorConflict)) throw new ActionsCheckError('unavailable');
     }
     if (error instanceof MonitorConflict) throw new ActionsCheckError('conflict');
-    if (error instanceof ActionsCheckError) throw error;
+    if (error instanceof ActionsCheckError) { error.retryAt = budget.retryAt; throw error; }
     if (error instanceof ScopeError) throw new ActionsCheckError('scope_changed');
-    if (error instanceof DiscoveryError) throw new ActionsCheckError(error.reason === 'rate_limited' ? 'rate_limited' : error.reason === 'incomplete' ? 'incomplete' : 'unavailable');
+    if (error instanceof DiscoveryError) {
+      const failure = new ActionsCheckError(error.reason === 'rate_limited' ? 'rate_limited' : error.reason === 'incomplete' ? 'incomplete' : 'unavailable');
+      failure.retryAt = budget.retryAt;
+      throw failure;
+    }
     throw new ActionsCheckError('unavailable');
+  } finally {
+    options.onUsage?.(Math.min(40, 40 - Math.max(0, budget.remaining)));
   }
 }

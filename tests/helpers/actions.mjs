@@ -36,7 +36,7 @@ export async function actionsFixture(overrides = {}) {
   const calls = [];
   const metadataCalls = new Map();
   const control = {
-    mode: 'active', beforeActions: async () => {},
+    mode: 'active', beforeActions: async () => {}, beforeInventory: async () => {},
     page: null, metadata: null, privateInventory: false, missingOrganization: false,
   };
   const worker = await runtimeWorker({
@@ -61,6 +61,7 @@ export async function actionsFixture(overrides = {}) {
       }
       const org = request.headers.get('Authorization') === 'Bearer fixture-org-token';
       if (url.pathname === '/installation/repositories') {
+        await control.beforeInventory();
         const publicRepos = repositories.filter(repo => (repo.installationId === 8) === org).map(metadata);
         if (control.privateInventory && !org) publicRepos[0].private = true;
         const privateRepos = org ? [] : Array.from({ length: 17 }, (_, i) => ({ id: 100 + i,

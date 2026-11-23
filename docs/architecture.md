@@ -13,15 +13,12 @@ flowchart LR
   CICD[GitHub Actions] -->|Build and deploy| API
 ```
 
-The current implementation contains the PWA shell, honest unknown-status API,
-a pure idle-decision function, owner authorization handlers, and an owner-only
-repository inventory check. D1 session storage is deployed and verified. Saved
-public scope and disconnect handlers are deployed and owner-verified. A manual
-owner Actions check is deployed and verified for empty and running scans, with
-durable state verified in hosted D1. Signed event ingestion is implemented,
-awaiting CI/deployment and dedicated secret setup; scheduled handlers and push
-remain planned. See
-roadmap.md for boundaries and github-connection.md for the sign-in contract.
+The current source includes the PWA, owner authorization, saved public scope,
+complete Actions scans, signed ingestion, and owner-activated scheduled
+reconciliation. D1 sessions, scope, manual checks and the signed receiver have
+been deployed. Scheduled reconciliation and public live status await CI,
+deployment, real signed-delivery verification and owner activation. Push remains
+planned. See [reconciliation.md](reconciliation.md) for the new runtime contract.
 
 ## Frontend and framework choice
 
@@ -122,10 +119,10 @@ unprepared and hidden until fresh verification. A failed save preserves the
 previous document; it makes no claim of current access. The UI clears its old
 scope on a failed operation and offers an explicit reload.
 
-Saved scope is preparation only: public status remains unknown/unconnected.
-Only an explicit owner Actions check can query run status. The signed receiver
-records event evidence without calling GitHub; there is no scheduled scan or
-notification delivery. Scan results are fenced by
+Saved scope is preparation only: public status remains unknown/unconnected
+until the owner starts automatic checks. Manual checks remain explicit. The
+signed receiver records event evidence without calling GitHub; the scheduled
+runner reconciles only when enabled. Notification delivery remains disabled. Scan results are fenced by
 both the scope revision and the monitor revision. Scope replacement/disconnect
 atomically resets monitor state and removes pending outbox work.
 
@@ -171,7 +168,8 @@ the revision and rejects the in-flight result. Detected access/visibility
 changes, rate limits, provider errors, deadlines, oversized/malformed responses
 or incomplete pages return fixed errors with no partial runs. Visibility can
 still change immediately after the final check; distributed reads are not an
-atomic GitHub snapshot. This owner-only observation is not published. The
+atomic GitHub snapshot. Manual observations while paused are not published. After activation, only
+a fresh complete observation under the current scope can be published. The
 durable-state change stores only its sanitized run fields after successful
 monitor/scope revision checks, with a 256-KiB bound on the complete run document.
 Oversized observations fail rather than persist a truncated subset.
@@ -179,11 +177,10 @@ Oversized observations fail rather than persist a truncated subset.
 The response contains scan start/end time, scope revision, repository count and
 explicit unfinished runs with their attempt numbers. A failed retry clears the
 prior UI observation; changing/reloading scope and sign-out also clear it.
-An empty check explicitly does not assert public global idle. The internal
-activity latch and quiet-period state are now persisted, while `/api/status`
-remains unknown/unconnected. The owner confirmed all five unfinished statuses
-block idle. Webhook ordering and continuous reconciliation remain subsequent
-milestones. The owner verified a running workflow in the required organization
+An empty check alone cannot assert public global idle. The internal activity
+latch and quiet-period state are persisted. The owner confirmed all five
+unfinished statuses block idle. Scheduled checks and the public feed are
+described in reconciliation.md; push delivery remains a subsequent milestone. The owner verified a running workflow in the required organization
 and its persisted busy state/activity latch in hosted D1.
 
 ## Signed event ingestion
@@ -223,7 +220,8 @@ scope, run state and pending notices. Receipt tombstones survive scope changes
 so redelivery cannot clear a fresh owner save again. Expired/pre-scope events
 are ignored. Accepted deliveries opportunistically remove up to 50 expired
 receipts and run records after seven days; scheduled cleanup is still planned.
-Public status stays unknown/unconnected and notification readiness stays off.
+Public status is exposed only after owner activation and fresh complete
+reconciliation. Notification readiness stays off in this milestone.
 
 ## Owner repository inventory
 
@@ -270,7 +268,8 @@ configuration fails closed; local personal-only tests explicitly use `[]`.
 
 This is still not an inventory of every collaborator repository accessible to
 the GitHub user. Coverage outside the configured accounts remains unverified.
-The check cannot establish global idle. The public status API remains unknown
+The inventory check cannot establish global idle. Before automatic activation,
+the public status API remains unknown
 and unconnected. A failed UI retry clears the old report; a partial report
 labels the missing accounts and cannot claim configured access is complete.
 

@@ -1,8 +1,11 @@
 # Signed GitHub event receiver
 
-The receiver is implemented and awaits CI/deployment. Keep GitHub webhooks
-inactive until that deployment completes and both services have the same secret.
-Continuous scans, public live status and Web Push are separate milestones.
+The receiver is deployed. Keep GitHub webhooks inactive until both services
+have the same dedicated secret.
+The owner reports saving the shared secret and subscriptions. An unsigned
+probe now returns 401, confirming receiver setup format; matching signed
+GitHub delivery is still to be verified. Automatic checks and public live status
+are implemented in the next release; Web Push remains a separate milestone.
 
 ## Owner setup after deployment
 
@@ -78,8 +81,9 @@ URLs are neither logged nor persisted.
 
 Only minimal IDs, attempt/status/timing and deduplication metadata are stored.
 The receiver makes no GitHub API request and starts no timer, workflow or cron.
-Notification readiness remains disabled and public status remains unknown until
-continuous reconciliation and delivery are implemented and activated.
+Notification readiness remains disabled. Public status requires deployment and
+owner activation of automatic checks; see reconciliation.md. A webhook alone
+cannot publish idle.
 
 ## References
 

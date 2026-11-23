@@ -7,46 +7,32 @@ cancellation, and other terminal conclusions all count as finished.
 
 ## Current status
 
-This is the foundation and owner connection code, not a live monitor yet. It includes:
+The current source adds owner-activated automatic checks and a live public
+status feed. This release still needs CI, deployment, real signed-delivery
+verification and owner activation. Push notifications remain the next milestone.
 
-- A responsive React dashboard adapted from GitHub Workflow Dashboard, including
-  repository cards, status badges, filters, compact mode, and light/dark themes.
-- An explicit sample-data preview at `/?demo=1`.
-- A Cloudflare Worker with `/api/health` and `/api/status` endpoints. Until
-  account integration is implemented, status is always **unknown**, never idle.
-- A web manifest, service worker, and offline fallback. No cached status is
-  presented as live. Final device installation checks remain on the roadmap.
-- A tested idle-decision function, GitHub Actions CI, and deployment workflow.
-- GitHub App owner sign-in with PKCE and secure, signed session cookies. Sign-in
-  remains disabled until the GitHub App settings and secrets are configured.
-- Persistent D1 owner sessions and all-device sign-out are deployed and verified
-  in the owner's normal and private browser sessions.
-- Owner connection settings at `/settings`; this does not yet authorize live
-  repository monitoring or change the public unknown-status response.
-- An owner-only repository access check with GitHub App authentication,
-  pagination, explicit organization scopes and required-repository gaps.
-  It runs only when the owner clicks the check button.
-- An owner-only saved public scope, fresh verification before saving, and a
-  disconnect action. This is deployed and owner-verified. A saved inventory is
-  not proof of current access or idle.
-- An owner-triggered manual Actions check in settings, deployed and owner-verified
-  with empty and running results across four public repositories. It covers all five unfinished statuses, complete pagination,
-  visibility/access validation and scope changes without claiming global idle.
-- Durable internal monitoring state and atomic idle outbox support, deployed
-  and verified in hosted D1. Manual checks save sanitized observations; public
-  status and notification creation stay disabled until continuous monitoring is ready.
+- Responsive React dashboard, filters, compact mode and light/dark themes,
+  adapted from GitHub Workflow Dashboard; explicit sample preview at `/?demo=1`.
+- GitHub App owner sign-in, revocable D1 sessions, installation verification and
+  a saved public-only scope: three personal repositories plus the required
+  `stormbots/Tactics-Strategy-Dev-Environments` repository. The 17 private
+  repositories are excluded from Actions queries and activity decisions.
+- Signature-verified events with deduplication and per-attempt ordering.
+- Owner Start/Pause controls for checks about once a minute. Start revalidates
+  access; installation/scope changes require fresh verification.
+- A bounded complete Actions scan, durable activity state, two-scan idle
+  confirmation, fenced worker leases and rate-limit backoff. Initial quiet
+  does not create a notification epoch.
+- A read-only public status feed from D1. Public refreshes never query GitHub.
+  Unknown/stale/failed checks hide run details and cannot claim idle.
+- Web manifest, service worker and offline fallback; actual device installation
+  and background push verification remain on the roadmap.
+- GitHub Actions CI with user-coordinated engineering handoffs. Automatic
+  deployment remains disabled until separately configured.
 
-- A signed webhook receiver, delivery deduplication and latest-attempt ordering,
-  implemented and awaiting CI/deployment and dedicated secret setup.
-
-Webhook activation, continuous reconciliation, and actual push delivery
-are the next milestones. The decision function is not
-wired to a live ingestion pipeline yet. The owner connection code is deployed;
-its secrets are installed, and real owner sign-in is verified. Repository access
-checking is deployed and the personal inventory is verified. The organization
-extension is deployed and verified for the required `stormbots` repository.
-The owner selected only the four public repositories for monitoring; the 17
-accessible private repositories are excluded. Live monitoring is not started.
+See [automatic checks](docs/reconciliation.md) for activation and limits.
+Notification creation and delivery remain disabled in production. Deployment
+alone does not start GitHub API scans; the owner must activate them in settings.
 
 ## Local development
 

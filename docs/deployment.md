@@ -1,5 +1,36 @@
 # Deployment status
 
+## Automatic checks preparation
+
+The next release implements migration `0005_reconciliation.sql`, a one-minute
+Cron Trigger, owner Start/Pause controls and a freshness-gated public status
+feed. It awaits CI and deployment. Migration initializes controls as disabled;
+code upload alone does not call GitHub. Apply the migration before upload,
+verify the next ordinary CI workflow reaches the signed receiver, then have the
+owner activate checks in `/settings`. Notification readiness remains disabled.
+See [reconciliation.md](reconciliation.md) for verification and rollback.
+
+The owner reports saving the webhook secret/subscriptions. An unsigned hosted
+POST now returns 401 rather than 503, proving secret format readiness but not
+that GitHub has the same value. Actual signed delivery still needs verification.
+
+## Signed webhook deployment
+
+After main CI passed, commit `1a616ef5bfc4fa460c899e2c0ae5e97a5cffa544`
+was deployed manually as Cloudflare version
+`ba3d6398-6383-4558-9bd7-6519101ca2e8`. Migration
+`0004_webhook_events.sql` applied successfully to hosted D1 before code upload.
+Existing scope/session/monitor data and Worker secrets were preserved.
+Automatic GitHub deployment remains disabled; its workflow was skipped.
+
+HTTPS checks confirmed the receiver rejects GET with 405 and fails closed on
+POST with 503 while the dedicated secret is unconfigured. Health and owner
+sign-in configuration remain ready; public status remains uncached and
+unknown/unconnected. No authenticated webhook was sent by these probes.
+The owner must configure the shared secret and GitHub subscriptions using
+webhooks.md, then verify a real signed ping and workflow delivery. Continuous
+monitoring and notification delivery remain inactive.
+
 ## Signed webhook preparation
 
 The owner verified a running `Build Skyview Dev Setup` workflow in the required
@@ -7,8 +38,8 @@ organization repository. A read-only hosted query confirmed phase busy, one
 active run, armed activity, disabled notices and no pending outbox entries.
 The live persistence path is verified.
 
-The signed receiver and migration `0004_webhook_events.sql` are implemented,
-not deployed. No webhook secret has been generated/read/installed and the
+The signed receiver and migration `0004_webhook_events.sql` are deployed as
+recorded above. The dedicated secret remains unconfigured and the
 GitHub App's webhooks remain inactive. Setup requires a dedicated shared secret
 entered directly in GitHub and Cloudflare after receiver deployment. Event
 ingestion does not call GitHub, schedule checks or enable notifications. The
@@ -20,7 +51,7 @@ run. Coverage includes raw UTF-8 signatures, declared/streamed size bounds,
 concurrent duplicates, old completions and reruns, stale REST contradictions,
 late completion accounting, private scope enforcement, coverage invalidation
 and redelivery, rollback and retention. Hosted migration/deployment and real
-GitHub delivery setup remain after CI.
+GitHub delivery setup remain with the owner after deployment.
 
 ## Durable monitoring state deployment
 

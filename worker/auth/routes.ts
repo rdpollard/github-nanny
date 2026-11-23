@@ -1,5 +1,5 @@
 import type { OwnerSession, SignInOutcome } from '../../shared/contracts.ts';
-import { authConfig, type AuthConfig, type Bindings } from './config.ts';
+import { authConfig, webhookConfigured, type AuthConfig, type Bindings } from './config.ts';
 import {
   challenge, clearCookie, cookieValue, matchesNonce, OAUTH_COOKIE, OAUTH_SECONDS,
   randomToken, readSignedCookie, SESSION_COOKIE, SESSION_SECONDS, setCookie, signCookie,
@@ -7,8 +7,9 @@ import {
 import { GitHubAuthError, githubIdentity, type Fetcher } from './github.ts';
 import { checkRepositoryAccess, DiscoveryError } from '../github/discovery.ts';
 import { DatabaseSessions, type SessionStore } from './sessions.ts';
-import { MonitoringScopeStore, ScopeError, scopeKey } from '../github/scope-store.ts';
-import { checkActions, ActionsCheckError } from '../github/actions.ts';
+import { MonitoringScopeStore, ScopeError, scopeKey, verifiedScopeRepositories } from '../github/scope-store.ts';
+import { checkActions, ActionsCheckError, sameRepositories } from '../github/actions.ts';
+import { ControlStore, ControlConflict } from '../monitor-control.ts';
 
 export const privateHeaders = {
   'Cache-Control': 'no-store', Vary: 'Cookie', 'X-Content-Type-Options': 'nosniff',
@@ -61,6 +62,7 @@ export async function authRoute(request: Request, env: Bindings, options: AuthOp
     ['/api/admin/repositories', 'GET'],
     ['/api/admin/monitoring', 'GET, POST, DELETE'],
     ['/api/admin/actions', 'POST'],
+    ['/api/admin/reconciliation', 'GET, POST, DELETE'],
   ]);
   const method = routes.get(url.pathname);
   if (!method) return null;
@@ -138,6 +140,38 @@ async function configuredAuthRoute(request: Request, env: Bindings, options: Aut
   const current = await session(request, config, sessions, now);
   const owner = current.view;
   if (!owner.authenticated) return json({ error: 'Owner sign-in required' }, 401);
+  if (url.pathname === '/api/admin/reconciliation') {
+    if (request.headers.get('Sec-Fetch-Site') === 'cross-site' ||
+      (request.method !== 'GET' && request.headers.get('Origin') !== config.origin)) return json({ error: 'Invalid request origin' }, 403);
+    if (!env.DB) return json({ error: 'Monitoring storage unavailable' }, 503);
+    const controls = new ControlStore(env.DB);
+    const store = new MonitoringScopeStore(env.DB);
+    if (request.method === 'DELETE') {
+      await controls.pause();
+      return json(await controls.status(webhookConfigured(env)));
+    }
+    const key = scopeKey(env, config, owner.owner!.login);
+    const saved = await store.read(key);
+    if (request.method === 'GET') {
+      const status = await controls.status(webhookConfigured(env));
+      return json(saved.prepared ? status : { ...status, enabled: false, checking: false, nextCheckAt: null, lastError: null });
+    }
+    if (!webhookConfigured(env)) return json({ error: 'Configure the signed webhook receiver before starting automatic checks.' }, 409);
+    if (!saved.prepared) return json({ error: 'Save a public monitoring scope first.' }, 409);
+    try {
+      const report = await checkRepositoryAccess(env, config, owner.owner!.login, { fetcher: options.fetcher, now: options.now });
+      if (!sameRepositories(saved.repositories, verifiedScopeRepositories(report, key))) return json({ error: 'Repository access changed. Verify and save the public scope again.' }, 409);
+      // A fresh revision discards old confidence and activity when starting or
+      // restarting. A racing disconnect/save prevents activation.
+      const fresh = await store.save(key, saved.revision, report);
+      await controls.start(key, fresh.revision);
+      return json(await controls.status(true));
+    } catch (error) {
+      if (error instanceof ScopeError || error instanceof ControlConflict) return json({ error: 'The scope changed or could not be completely verified. Reload and try again.' }, 409);
+      if (error instanceof DiscoveryError) return json({ error: 'Repository access could not be verified. Automatic checks were not started.' }, 503);
+      throw error;
+    }
+  }
   if (url.pathname === '/api/admin/actions') {
     if (request.headers.get('Sec-Fetch-Site') === 'cross-site' || request.headers.get('Origin') !== config.origin) return json({ error: 'Invalid request origin' }, 403);
     try { return json(await checkActions(env, config, owner.owner!.login, { fetcher: options.fetcher, now: options.now })); }

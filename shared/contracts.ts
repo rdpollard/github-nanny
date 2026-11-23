@@ -79,12 +79,21 @@ export interface SavedMonitoringScope {
 
 export interface ActiveRun {
   id: number;
+  attempt?: number;
   repository: string;
   workflow: string;
   branch: string;
   status: 'queued' | 'in_progress' | 'waiting' | 'pending' | 'requested';
   url: string;
   startedAt: string;
+}
+
+export interface MonitoringControl {
+  enabled: boolean;
+  checking: boolean;
+  webhookConfigured: boolean;
+  nextCheckAt: string | null;
+  lastError: string | null;
 }
 
 export interface ActionsCheck {

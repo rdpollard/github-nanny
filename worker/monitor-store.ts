@@ -1,5 +1,6 @@
 import type { ActionsCheck, SavedMonitoringScope } from '../shared/contracts.ts';
 import { stabilize, type StabilizedMonitorState } from './monitor.ts';
+import { resetControlScope, type ScanLease } from './monitor-control.ts';
 
 interface MonitorRow {
   scope_revision: number; revision: number; phase: StabilizedMonitorState['phase']; activity_observed: number;
@@ -24,6 +25,7 @@ export function resetMonitorScope(database: D1DatabaseSession): D1PreparedStatem
       WHERE singleton = 1 AND scope_revision != (SELECT revision FROM monitoring_scope WHERE singleton = 1)`),
     database.prepare('DELETE FROM idle_outbox WHERE scope_revision != (SELECT revision FROM monitoring_scope WHERE singleton = 1)'),
     database.prepare('DELETE FROM workflow_run_state WHERE scope_revision != (SELECT revision FROM monitoring_scope WHERE singleton = 1)'),
+    ...resetControlScope(database),
   ];
 }
 
@@ -33,6 +35,24 @@ function validLink(link: string, scope: SavedMonitoringScope): boolean {
     const prefix = `${repo.url}/actions/runs/`;
     return link.startsWith(prefix) && /^[1-9]\d{0,15}\/attempts\/[1-9]\d{0,15}$/.test(link.slice(prefix.length));
   });
+}
+
+export function sanitizedRuns(scope: SavedMonitoringScope, values: ActionsCheck['runs']): ActionsCheck['runs'] {
+  if (!Array.isArray(values)) throw new Error('Invalid scan observation');
+  const seen = new Set<number>();
+  const runs = values.map(run => {
+    if (!run || !scope.repositories.some(repo => repo.name === run.repository) ||
+      !Number.isSafeInteger(run.id) || run.id <= 0 || !Number.isSafeInteger(run.attempt) || run.attempt <= 0 ||
+      seen.has(run.id) || !['queued', 'in_progress', 'requested', 'waiting', 'pending'].includes(run.status) ||
+      run.url !== `https://github.com/${run.repository}/actions/runs/${run.id}/attempts/${run.attempt}` ||
+      typeof run.workflow !== 'string' || run.workflow.length > 512 || typeof run.branch !== 'string' || run.branch.length > 1024 ||
+      typeof run.startedAt !== 'string' || !Number.isFinite(Date.parse(run.startedAt))) throw new Error('Invalid scan observation');
+    seen.add(run.id);
+    return { id: run.id, attempt: run.attempt, repository: run.repository, workflow: run.workflow,
+      branch: run.branch, status: run.status, url: run.url, startedAt: run.startedAt };
+  });
+  if (new TextEncoder().encode(JSON.stringify(runs)).byteLength > 262_144) throw new Error('Scan observation too large');
+  return runs;
 }
 
 export class MonitorStore {
@@ -65,38 +85,26 @@ export class MonitorStore {
         idleEpoch: row.idle_epoch, emptySince: row.empty_since, lastCompleteAt: row.last_complete_at } };
   }
 
-  async complete(token: ScanToken, report: ActionsCheck): Promise<void> {
+  async complete(token: ScanToken, report: ActionsCheck, lease?: ScanLease): Promise<void> {
     if (report.scopeRevision !== token.scope.revision || report.repositoryCount !== token.scope.repositories.length) throw new MonitorConflict();
-    const seen = new Set<number>();
-    const runs = report.runs.map(run => {
-      if (!token.scope.repositories.some(repo => repo.name === run.repository) ||
-        !Number.isSafeInteger(run.id) || run.id <= 0 || !Number.isSafeInteger(run.attempt) || run.attempt <= 0 ||
-        seen.has(run.id) || !['queued', 'in_progress', 'requested', 'waiting', 'pending'].includes(run.status) ||
-        run.url !== `https://github.com/${run.repository}/actions/runs/${run.id}/attempts/${run.attempt}` ||
-        typeof run.workflow !== 'string' || run.workflow.length > 512 || typeof run.branch !== 'string' || run.branch.length > 1024 ||
-        typeof run.startedAt !== 'string' || !Number.isFinite(Date.parse(run.startedAt))) throw new Error('Invalid scan observation');
-      seen.add(run.id);
-      return { id: run.id, attempt: run.attempt, repository: run.repository, workflow: run.workflow,
-        branch: run.branch, status: run.status, url: run.url, startedAt: run.startedAt };
-    });
+    const runs = sanitizedRuns(token.scope, report.runs);
     const runsJson = JSON.stringify(runs);
-    if (new TextEncoder().encode(runsJson).byteLength > 262_144) throw new Error('Scan observation too large');
     const result = stabilize(token.state, { revision: token.state.revision, complete: true, activeRunCount: runs.length,
       startedAt: Date.parse(report.startedAt), finishedAt: Date.parse(report.checkedAt) });
     if (result.state === token.state) throw new MonitorConflict();
     const link = runs.at(-1)?.url ?? token.lastRunUrl;
     await this.commit(token, result.state, runsJson, link,
-      token.noticeEnabled ? result.idleNotice?.epoch ?? null : null, Date.parse(report.startedAt));
+      token.noticeEnabled ? result.idleNotice?.epoch ?? null : null, Date.parse(report.startedAt), lease);
   }
 
-  async fail(token: ScanToken): Promise<void> {
+  async fail(token: ScanToken, lease?: ScanLease): Promise<void> {
     // A partial/failed scan breaks the quiet interval and hides active run
     // data. Pending notices remain paused while phase is unknown, so a later
     // confirmed empty period can release the same epoch rather than lose it.
-    await this.commit(token, { ...token.state, phase: 'unknown', emptySince: null }, '[]', token.lastRunUrl, null);
+    await this.commit(token, { ...token.state, phase: 'unknown', emptySince: null }, '[]', token.lastRunUrl, null, null, lease);
   }
 
-  private async commit(token: ScanToken, state: StabilizedMonitorState, runs: string, link: string | null, notice: number | null, scanStartedAt: number | null = null) {
+  private async commit(token: ScanToken, state: StabilizedMonitorState, runs: string, link: string | null, notice: number | null, scanStartedAt: number | null = null, lease?: ScanLease) {
     const database = this.database.withSession('first-primary');
     const marker = crypto.randomUUID();
     const result = await database.batch([
@@ -108,9 +116,13 @@ export class MonitorStore {
           ON w.scope_revision = ? AND w.run_id = json_extract(r.value, '$.id')
           WHERE w.attempt > json_extract(r.value, '$.attempt') OR
             (w.attempt = json_extract(r.value, '$.attempt') AND w.terminal = 1))
+        AND (? IS NULL OR EXISTS (SELECT 1 FROM monitor_control WHERE singleton = 1 AND enabled = 1
+          AND lease_key = ? AND scope_revision = ? AND lease_expires_at >
+            cast(strftime('%s', 'now') AS INTEGER) * 1000 + cast(substr(strftime('%f', 'now'), 4, 3) AS INTEGER)))
         RETURNING revision`)
         .bind(state.phase, Number(state.activityObserved), state.idleEpoch, state.emptySince, state.lastCompleteAt,
-          runs, link, marker, token.state.revision, token.scope.revision, token.scope.revision, token.key, runs, token.scope.revision),
+          runs, link, marker, token.state.revision, token.scope.revision, token.scope.revision, token.key, runs, token.scope.revision,
+          lease?.id ?? null, lease?.id ?? null, token.scope.revision),
       database.prepare(`INSERT INTO idle_outbox (epoch, scope_revision, created_at, run_url)
         SELECT idle_epoch, scope_revision, last_complete_at, last_run_url FROM monitor_state
         WHERE singleton = 1 AND commit_key = ? AND notice_enabled = 1 AND phase = 'idle' AND idle_epoch = ?`)

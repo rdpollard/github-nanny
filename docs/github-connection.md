@@ -185,7 +185,7 @@ activity is excluded. Webhooks and scheduled checks remain inactive.
 
 ## Signed webhook setup
 
-The receiver is implemented but awaits CI/deployment. Follow
+The receiver is deployed and awaits dedicated secret setup. Follow
 [webhook setup](webhooks.md) after deployment to configure the dedicated shared
 secret, webhook URL and event subscriptions. Existing sign-in redirect settings,
 read-only permissions and App key remain in use. Receiving signed events alone

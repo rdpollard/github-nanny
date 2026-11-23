@@ -32,14 +32,14 @@ export function App() {
     if (demo) return;
     setLoading(true);
     try {
-      const response = await fetch('/api/status', { cache: 'no-store', signal });
+      const response = await fetch('/api/status', { cache: 'no-store', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10_000)]) : AbortSignal.timeout(10_000) });
       if (!response.ok) throw new Error('Unable to check GitHub status.');
       const data: DashboardSnapshot = await response.json();
       if (!signal?.aborted) setSnapshot(data);
     } catch {
       if (!signal?.aborted) setSnapshot(previous => ({
-        ...previous, phase: 'unknown',
-        message: 'Status could not be refreshed. The runs below may be out of date.',
+        ...previous, phase: 'unknown', runs: [], checkedAt: null,
+        message: 'Status could not be refreshed. Current activity cannot be confirmed.',
       }));
     } finally { if (!signal?.aborted) setLoading(false); }
   }, [demo]);
@@ -58,9 +58,10 @@ export function App() {
     };
   }, [refresh]);
 
-  const running = snapshot.runs.filter(run => run.status === 'in_progress').length;
-  const waiting = snapshot.runs.length - running;
-  const visible = snapshot.runs.filter(run => filter === 'all' || (filter === 'running' ? run.status === 'in_progress' : run.status !== 'in_progress'));
+  const currentRuns = !offline && snapshot.phase !== 'unknown' ? snapshot.runs : [];
+  const running = currentRuns.filter(run => run.status === 'in_progress').length;
+  const waiting = currentRuns.length - running;
+  const visible = currentRuns.filter(run => filter === 'all' || (filter === 'running' ? run.status === 'in_progress' : run.status !== 'in_progress'));
   const repositories = [...new Set(visible.map(run => run.repository))];
   const phase = offline ? 'unknown' : snapshot.phase;
 
@@ -93,12 +94,12 @@ export function App() {
 
       <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Filter active runs">
         {([
-          { key: 'all', label: 'Active runs', count: snapshot.runs.length, color: 'bg-slate-700', Icon: Activity },
+          { key: 'all', label: 'Active runs', count: currentRuns.length, color: 'bg-slate-700', Icon: Activity },
           { key: 'running', label: 'Running', count: running, color: 'bg-sky-600', Icon: Loader },
           { key: 'queued', label: 'Queued / waiting', count: waiting, color: 'bg-orange-600', Icon: Clock },
         ] as const).map(({ key, label, count, color, Icon }) => (
           <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)} className={`flex items-center justify-between rounded-xl border-2 p-5 text-left text-white shadow-sm transition ${color} ${filter === key ? 'border-slate-950 dark:border-white' : 'border-transparent'}`}>
-            <div><p className="text-sm font-medium">{label}</p><p className="mt-1 text-3xl font-bold">{snapshot.connected ? count : '—'}</p></div>
+            <div><p className="text-sm font-medium">{label}</p><p className="mt-1 text-3xl font-bold">{snapshot.connected && phase !== 'unknown' ? count : '—'}</p></div>
             <Icon aria-hidden="true" className="size-7 opacity-80" />
           </button>
         ))}
@@ -111,8 +112,8 @@ export function App() {
             <CardHeader><CardTitle className="flex items-center gap-2"><GitFork aria-hidden="true" className="size-4 text-muted-foreground" />{repository}</CardTitle></CardHeader>
             <CardContent><ul className="divide-y">
               {visible.filter(run => run.repository === repository).map(run => (
-                <li key={run.id} className={`flex flex-wrap items-center justify-between gap-3 ${compact ? 'py-2' : 'py-4'}`}>
-                  <div className="min-w-0"><a className="inline-flex items-center gap-2 font-medium hover:underline" href={run.url} target="_blank" rel="noopener noreferrer">{run.workflow}<ExternalLink aria-label="Opens GitHub" className="size-3 shrink-0" /></a><p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><GitBranch aria-hidden="true" className="size-3" />{run.branch}</p></div>
+                <li key={`${run.id}:${run.attempt ?? 1}`} className={`flex flex-wrap items-center justify-between gap-3 ${compact ? 'py-2' : 'py-4'}`}>
+                  <div className="min-w-0"><a className="inline-flex items-center gap-2 font-medium hover:underline" href={run.url} target="_blank" rel="noopener noreferrer">{run.workflow}<ExternalLink aria-label="Opens GitHub" className="size-3 shrink-0" /></a><p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><GitBranch aria-hidden="true" className="size-3" />{run.branch}{run.attempt && ` · Attempt ${run.attempt}`}</p></div>
                   <StatusBadge status={run.status} />
                 </li>
               ))}

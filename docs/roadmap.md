@@ -44,13 +44,15 @@
 - [x] Implement signature-verified webhooks, deduplication and per-attempt event ordering.
 - [x] Persist scan and event run IDs/attempts; test late completions and reruns.
 - [ ] Deploy receiver, configure secret/subscriptions and verify real deliveries.
-- [ ] Provide active-run API with scope/freshness and access failure handling.
+- [x] Implement active-run API with scope/freshness and access failure handling.
+- [ ] Deploy automatic checks and verify the public live dashboard.
 - [x] Confirm waiting/requested/pending block idle alongside queued/running.
 - [ ] Resolve any coverage fallback outside the configured accounts.
 
 ## 3. Confirmed global idle
 
-- [ ] Add hosted scheduled reconciliation with request/CPU/rate-limit budgets.
+- [x] Implement scheduled reconciliation, bounded requests, leased scans and backoff.
+- [ ] Deploy the schedule and activate it with the owner after real delivery verification.
 - [x] Persist scan state atomically, stabilize two complete empty scans and reject stale revisions.
 - [x] Implement one atomic outbox entry per idle epoch; production creation remains disabled.
 - [x] Add signed activity ingestion and invalidate in-flight scans on fresh activity.
