@@ -1,5 +1,5 @@
 import type { Bindings } from '../auth/config.ts';
-import { authConfig } from '../auth/config.ts';
+import { authConfig, webhookConfigured } from '../auth/config.ts';
 import { MonitoringScopeStore } from './scope-store.ts';
 import { MonitorStore } from '../monitor-store.ts';
 import { WebhookStore, WEBHOOK_RETENTION_MS } from './webhook-store.ts';
@@ -44,7 +44,7 @@ export async function webhookRoute(request: Request, env: Bindings): Promise<Res
   if (request.method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405, headers: { ...headers, Allow: 'POST' } });
   const secret = env.GITHUB_WEBHOOK_SECRET;
   const config = authConfig(env);
-  if (!config || !secret || secret.length < 32 || secret.length > 256 || /[\r\n\0]/.test(secret)) return reply(503, 'Webhook receiver is not configured');
+  if (!config || !secret || !webhookConfigured(env)) return reply(503, 'Webhook receiver is not configured');
   if (new URL(request.url).origin !== config.origin) return reply(400, 'Unexpected application origin');
   const signature = request.headers.get('X-Hub-Signature-256') ?? '';
   if (!/^sha256=[0-9a-f]{64}$/i.test(signature)) return reply(401, 'Invalid webhook signature');

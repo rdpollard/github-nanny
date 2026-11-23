@@ -2,6 +2,11 @@
 // readable while sign-in remains disabled until all required settings exist.
 export type Bindings = Partial<Cloudflare.Env>;
 
+export function webhookConfigured(env: Bindings): boolean {
+  const secret = env.GITHUB_WEBHOOK_SECRET;
+  return !!secret && secret.length >= 32 && secret.length <= 256 && !/[\r\n\0]/.test(secret);
+}
+
 export interface AuthConfig {
   origin: string;
   ownerId: string;

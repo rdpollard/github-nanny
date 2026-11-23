@@ -77,6 +77,13 @@ const path = require('node:path');
     let scopeDeletes = 0;
     let actionsRequests = 0;
     let savedScope = { revision: 0, prepared: false, policy: 'public-only', verifiedAt: null, repositories: [] };
+    let automaticEnabled = false;
+    let automaticWrites = 0;
+    await page.route(`${origin}/api/admin/reconciliation`, route => {
+      const method = route.request().method();
+      if (method !== 'GET') { automaticWrites++; automaticEnabled = method === 'POST'; }
+      return route.fulfill({ json: { enabled: automaticEnabled, checking: false, webhookConfigured: true, nextCheckAt: null, lastError: null } });
+    });
     await page.route(`${origin}/api/admin/monitoring`, route => {
       const method = route.request().method();
       if (method === 'POST') {
@@ -146,7 +153,7 @@ const path = require('node:path');
     assert.equal(discoveryRequests, 3);
     assert.equal(scopeSaves, 0); // An access check alone never changes the scope.
     await page.getByRole('button', { name: 'Save public scope', exact: true }).click();
-    await page.getByText('Public scope saved: 1 repositories. Actions monitoring is not active yet.', { exact: true }).waitFor();
+    await page.getByText('Public scope saved: 1 repositories.', { exact: true }).waitFor();
     assert.equal(await page.getByRole('list', { name: 'Saved public repositories' }).getByRole('link').count(), 1);
     assert.equal(actionsRequests, 0); // Saving/reloading never starts Actions queries.
     await page.getByRole('button', { name: 'Check Actions now', exact: true }).click();
@@ -164,6 +171,13 @@ const path = require('node:path');
     assert.equal(await page.getByRole('list', { name: 'Saved public repositories' }).count(), 0);
     await page.getByRole('button', { name: 'Reload saved scope', exact: true }).click();
     await page.getByRole('list', { name: 'Saved public repositories' }).waitFor();
+    assert.equal(automaticWrites, 0);
+    await page.getByRole('button', { name: 'Start automatic checks', exact: true }).click();
+    await page.getByText('Automatic checks are enabled.', { exact: true }).waitFor();
+    assert.equal(await page.getByRole('button', { name: 'Start automatic checks', exact: true }).isDisabled(), true);
+    await page.getByRole('button', { name: 'Pause automatic checks', exact: true }).click();
+    await page.getByText('Automatic checks are paused.', { exact: true }).waitFor();
+    assert.equal(automaticWrites, 2);
     await page.getByRole('button', { name: 'Disconnect saved scope', exact: true }).click();
     await page.getByText('No public monitoring scope is saved.', { exact: true }).waitFor();
     assert.equal(scopeDeletes, 1);
@@ -187,8 +201,25 @@ const path = require('node:path');
     await page.unroute(`${origin}/api/admin/repositories`);
     await page.unroute(`${origin}/api/admin/monitoring`);
     await page.unroute(`${origin}/api/admin/actions`);
+    await page.unroute(`${origin}/api/admin/reconciliation`);
     await page.getByRole('link', { name: 'Back to dashboard', exact: true }).click();
     await page.getByRole('heading', { name: 'Status unavailable' }).waitFor();
+    let liveUnavailable = false;
+    await page.route(`${origin}/api/status`, route => liveUnavailable ? route.fulfill({ status: 503, json: { error: 'unavailable' } }) : route.fulfill({ json: {
+      phase: 'busy', connected: true, checkedAt: new Date().toISOString(), repositoryCount: 4, message: 'At the last complete check.',
+      runs: [{ id: 23, attempt: 2, repository: 'rdpollard/public-demo', workflow: 'Live CI', branch: 'main', status: 'waiting',
+        url: 'https://github.com/rdpollard/public-demo/actions/runs/23/attempts/2', startedAt: new Date().toISOString() }],
+    } }));
+    await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+    await page.getByRole('heading', { name: 'GitHub is busy' }).waitFor();
+    await page.getByRole('link', { name: 'Live CI', exact: false }).waitFor();
+    await page.getByText('main · Attempt 2', { exact: true }).waitFor();
+    liveUnavailable = true;
+    await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+    await page.getByRole('heading', { name: 'Status unavailable' }).waitFor();
+    assert.equal(await page.getByRole('link', { name: 'Live CI', exact: false }).count(), 0);
+    assert.match(await page.getByRole('button', { name: 'Active runs', exact: false }).innerText(), /—/);
+    await page.unroute(`${origin}/api/status`);
     await page.evaluate(() => navigator.serviceWorker.ready);
     await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
     await context.setOffline(true);

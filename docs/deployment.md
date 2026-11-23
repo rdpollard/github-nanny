@@ -1,5 +1,19 @@
 # Deployment status
 
+## Automatic checks preparation
+
+The next release implements migration `0005_reconciliation.sql`, a one-minute
+Cron Trigger, owner Start/Pause controls and a freshness-gated public status
+feed. It awaits CI and deployment. Migration initializes controls as disabled;
+code upload alone does not call GitHub. Apply the migration before upload,
+verify the next ordinary CI workflow reaches the signed receiver, then have the
+owner activate checks in `/settings`. Notification readiness remains disabled.
+See [reconciliation.md](reconciliation.md) for verification and rollback.
+
+The owner reports saving the webhook secret/subscriptions. An unsigned hosted
+POST now returns 401 rather than 503, proving secret format readiness but not
+that GitHub has the same value. Actual signed delivery still needs verification.
+
 ## Signed webhook deployment
 
 After main CI passed, commit `1a616ef5bfc4fa460c899e2c0ae5e97a5cffa544`
