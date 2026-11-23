@@ -17,3 +17,9 @@ Copyright (c) 2026 Cheney Yan. Licensed under MIT. The full notice is retained i
 Layout ideas (summary cards, repository grouping and compact view) also follow
 that project. New wiring and backend code are covered by this project's LICENSE.
 Dependencies retain their own licenses through npm distributions and lockfile.
+
+Web Push encryption and VAPID authentication use
+[@block65/webcrypto-web-push](https://github.com/block65/webcrypto-web-push)
+2.0.0 (MIT), with uint8array-extras 1.6.0 (MIT). Their full notices are retained
+in [licenses/webcrypto-web-push.txt](licenses/webcrypto-web-push.txt) and
+[licenses/uint8array-extras.txt](licenses/uint8array-extras.txt).

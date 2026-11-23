@@ -19,7 +19,7 @@
     "enabled": true,
     "redact_query_string": true,
     "logs": { "enabled": true, "invocation_logs": false },
-    "traces": { "enabled": true, "head_sampling_rate": 0.1 }
+    "traces": { "enabled": false }
   },
   "d1_databases": [
     {

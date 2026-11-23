@@ -6,5 +6,7 @@ GITHUB_APP_SLUG=""
 SESSION_SECRET=""
 GITHUB_APP_PRIVATE_KEY=""
 GITHUB_WEBHOOK_SECRET=""
+WEB_PUSH_PRIVATE_KEY=""
+PUSH_STORAGE_SECRET=""
 # Explicit personal-only local scope; production organizations live in wrangler.jsonc.
 GITHUB_ORGANIZATIONS="[]"

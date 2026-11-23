@@ -4,6 +4,7 @@ import { ACTIONS_CHECK_MESSAGES, DISCOVERY_MESSAGES, SIGN_IN_MESSAGES, type Acti
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { StatusBadge } from './components/StatusBadge';
+import { PushDevices } from './PushDevices';
 
 export function OwnerSettings() {
   const [session, setSession] = useState<OwnerSession | null>(null);
@@ -262,6 +263,7 @@ export function OwnerSettings() {
           <p className="text-sm text-muted-foreground">A single empty check cannot confirm global idle. Use the live dashboard for automatic status. Push notifications are not enabled yet.</p>
         </CardContent>
       </Card>}
+      {session?.authenticated && <PushDevices />}
     </main>
   );
 }

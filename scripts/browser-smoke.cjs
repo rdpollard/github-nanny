@@ -84,6 +84,44 @@ const path = require('node:path');
       if (method !== 'GET') { automaticWrites++; automaticEnabled = method === 'POST'; }
       return route.fulfill({ json: { enabled: automaticEnabled, checking: false, webhookConfigured: true, nextCheckAt: null, lastError: null } });
     });
+    const pushPublicKey = Buffer.from([4, ...new Array(64).fill(0)]).toString('base64url');
+    let pushDevices = [];
+    let pushSaves = 0;
+    let pushTests = 0;
+    await page.addInitScript(({ applicationKey }) => {
+      const state = window.__nannyPush = { permission: 'default', requests: 0, subscribed: false, gesture: false };
+      Object.defineProperty(Notification, 'permission', { configurable: true, get: () => state.permission });
+      Notification.requestPermission = async () => {
+        state.gesture = navigator.userActivation.isActive;
+        state.requests++; state.permission = 'granted'; return 'granted';
+      };
+      const value = { endpoint: 'https://fcm.googleapis.com/fcm/send/browser-fixture-only', expirationTime: null,
+        keys: { p256dh: applicationKey, auth: 'AAAAAAAAAAAAAAAAAAAAAA' } };
+      const subscription = { options: { applicationServerKey: Uint8Array.from(atob(applicationKey.replaceAll('-', '+').replaceAll('_', '/')), c => c.charCodeAt(0)).buffer },
+        toJSON: () => value, unsubscribe: async () => { state.subscribed = false; return true; } };
+      PushManager.prototype.getSubscription = async () => state.subscribed ? subscription : null;
+      PushManager.prototype.subscribe = async options => {
+        if (!options.userVisibleOnly || !options.applicationServerKey) throw new Error('Browser subscription options missing');
+        state.subscribed = true; return subscription;
+      };
+    }, { applicationKey: pushPublicKey });
+    await page.route(`${origin}/api/admin/push`, async route => {
+      const method = route.request().method();
+      if (method === 'POST') {
+        pushSaves++; const data = route.request().postDataJSON();
+        assert.equal(data.label, 'Linux browser'); assert.ok(data.subscription.keys.auth);
+        pushDevices = [{ id: 'A'.repeat(43), label: data.label, ready: true, createdAt: new Date().toISOString(), expiresAt: null,
+          lastTestAt: null, lastResult: null, testNotBefore: new Date(0).toISOString() }];
+        return route.fulfill({ status: 201, json: { id: pushDevices[0].id } });
+      }
+      if (method === 'DELETE') { pushDevices = []; return route.fulfill({ json: { ok: true } }); }
+      return route.fulfill({ json: { configured: true, applicationServerKey: pushPublicKey, devices: pushDevices } });
+    });
+    await page.route(`${origin}/api/admin/push/test`, route => {
+      assert.equal(route.request().method(), 'POST'); pushTests++;
+      pushDevices[0] = { ...pushDevices[0], lastTestAt: new Date().toISOString(), lastResult: 'accepted', testNotBefore: new Date(Date.now() + 60_000).toISOString() };
+      return route.fulfill({ status: 202, json: { accepted: true } });
+    });
     await page.route(`${origin}/api/admin/monitoring`, route => {
       const method = route.request().method();
       if (method === 'POST') {
@@ -185,6 +223,18 @@ const path = require('node:path');
     assert.equal(await page.getByRole('button', { name: 'Check Actions now', exact: true }).isDisabled(), true);
     assert.equal(await page.getByText('No unfinished runs were found in this check. Global idle is not confirmed yet.', { exact: true }).count(), 0);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    assert.equal(pushSaves, 0); assert.equal(pushTests, 0);
+    assert.equal(await page.evaluate(() => window.__nannyPush.requests), 0, 'Loading settings must not ask notification permission');
+    await page.getByLabel('Device name').fill('Linux browser');
+    await page.getByRole('button', { name: 'Register this browser', exact: true }).click();
+    await page.getByRole('status').filter({ hasText: 'Browser registered.' }).waitFor();
+    assert.equal(pushSaves, 1); assert.equal(await page.evaluate(() => window.__nannyPush.gesture), true);
+    await page.getByRole('button', { name: 'Send test to Linux browser', exact: true }).click();
+    await page.getByRole('status').filter({ hasText: 'The push service accepted the test.' }).waitFor();
+    assert.equal(pushTests, 1); assert.equal(await page.getByRole('button', { name: 'Send test to Linux browser', exact: true }).isDisabled(), true);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.getByRole('button', { name: 'Remove Linux browser', exact: true }).click();
+    await page.getByText('No push devices registered.', { exact: true }).waitFor();
     let logoutAllRequests = 0;
     await page.route(`${origin}/api/auth/logout-all`, route => {
       logoutAllRequests++;
@@ -202,6 +252,8 @@ const path = require('node:path');
     await page.unroute(`${origin}/api/admin/monitoring`);
     await page.unroute(`${origin}/api/admin/actions`);
     await page.unroute(`${origin}/api/admin/reconciliation`);
+    await page.unroute(`${origin}/api/admin/push`);
+    await page.unroute(`${origin}/api/admin/push/test`);
     await page.getByRole('link', { name: 'Back to dashboard', exact: true }).click();
     await page.getByRole('heading', { name: 'Status unavailable' }).waitFor();
     let liveUnavailable = false;
