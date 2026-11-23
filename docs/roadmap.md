@@ -43,16 +43,19 @@
 - [ ] Verify navigation through a real run link on the owner's device.
 - [x] Implement signature-verified webhooks, deduplication and per-attempt event ordering.
 - [x] Persist scan and event run IDs/attempts; test late completions and reruns.
-- [ ] Deploy receiver, configure secret/subscriptions and verify real deliveries.
+- [x] Deploy receiver, configure secret/subscriptions and verify a real completed workflow delivery.
 - [x] Implement active-run API with scope/freshness and access failure handling.
-- [ ] Deploy automatic checks and verify the public live dashboard.
+- [x] Deploy automatic checks, paused controls and the gated public status feed.
+- [ ] Verify owner activation and real live busy/idle dashboard results.
 - [x] Confirm waiting/requested/pending block idle alongside queued/running.
 - [ ] Resolve any coverage fallback outside the configured accounts.
 
 ## 3. Confirmed global idle
 
 - [x] Implement scheduled reconciliation, bounded requests, leased scans and backoff.
-- [ ] Deploy the schedule and activate it with the owner after real delivery verification.
+- [x] Deploy the one-minute schedule with checks disabled by default.
+- [x] Verify real signed delivery and its persisted terminal run/attempt.
+- [ ] Activate automatic checks with the owner.
 - [x] Persist scan state atomically, stabilize two complete empty scans and reject stale revisions.
 - [x] Implement one atomic outbox entry per idle epoch; production creation remains disabled.
 - [x] Add signed activity ingestion and invalidate in-flight scans on fresh activity.

@@ -16,8 +16,9 @@ flowchart LR
 The current source includes the PWA, owner authorization, saved public scope,
 complete Actions scans, signed ingestion, and owner-activated scheduled
 reconciliation. D1 sessions, scope, manual checks and the signed receiver have
-been deployed. Scheduled reconciliation and public live status await CI,
-deployment, real signed-delivery verification and owner activation. Push remains
+been deployed. Scheduled reconciliation and public live status are deployed with checks
+paused, pending owner activation. A real signed completed-workflow event and
+its persisted terminal run/attempt are verified. Push remains
 planned. See [reconciliation.md](reconciliation.md) for the new runtime contract.
 
 ## Frontend and framework choice

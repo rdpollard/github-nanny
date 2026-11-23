@@ -1,11 +1,12 @@
 # Signed GitHub event receiver
 
-The receiver is deployed. Keep GitHub webhooks inactive until both services
-have the same dedicated secret.
-The owner reports saving the shared secret and subscriptions. An unsigned
-probe now returns 401, confirming receiver setup format; matching signed
-GitHub delivery is still to be verified. Automatic checks and public live status
-are implemented in the next release; Web Push remains a separate milestone.
+The receiver is deployed. After the initial real delivery failed signature
+validation, the owner rotated the shared secret in Cloudflare and GitHub.
+Redelivery returned 202 and hosted D1 independently confirmed the delivery ID
+and completed terminal run/attempt. Real signature validation and persistence
+are verified. Automatic checks remain paused pending owner activation; Web Push
+remains a separate milestone. The instructions below are retained for setup
+and future rotations.
 
 ## Owner setup after deployment
 

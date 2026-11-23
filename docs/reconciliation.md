@@ -1,7 +1,8 @@
 # Automatic Actions checks
 
-This release implements continuous checks and a public live feed. It awaits
-CI, migration/deployment, verification of real signed events and owner activation.
+This release deploys continuous checks and a public live feed with checks paused.
+A real signed completed-workflow event is verified; owner activation remains
+necessary.
 Web Push and production idle-outbox creation remain disabled.
 
 ## Activation after deployment
