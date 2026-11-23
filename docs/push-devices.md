@@ -1,11 +1,36 @@
 # Owner push devices and test notifications
 
-This milestone implements owner-only device registration, encrypted subscription
-storage and an explicit test notification. It awaits CI, migration, server-key
-setup and deployment. It does not enable automatic idle notifications, change
+Owner-only device registration, encrypted subscription storage and explicit test
+notifications are deployed, with server keys installed. Actual registration and
+background receipt on owner devices remain to be verified. It does not enable automatic idle notifications, change
 the idle activity latch or dispatch pending idle epochs. The next milestone
 connects delivery/retries to the existing transactional idle outbox after real
 browser receipt is verified.
+
+## Current device verification
+
+The owner verified actual receipt in Vivaldi on Windows 11, both browser-only
+and installed PWA. Tests targeting Windows succeed when initiated from Windows
+settings or the Android PWA settings.
+
+Vivaldi on Android registers and grants site permission, but visible receipt is
+not verified. Tests targeting Android fail to produce the expected visible
+notification regardless of which device starts them. Hosted D1 independently
+shows accepted-by-provider results for both registered devices. This confirms
+provider acceptance, not receipt by Android or successful notification display.
+The sending device is not the apparent differentiator.
+
+Next checks are Android's Vivaldi app notification permission/category, the
+notification shade (including silent notifications), and the phone's Android /
+Vivaldi versions. If permissions are already enabled, isolate local notification
+display from remote push delivery and verify the active service-worker version.
+No root cause has been assigned to Android, Vivaldi or application code yet.
+Automatic idle notifications remain disabled during this verification.
+
+Vivaldi documents its site setting at **Settings → Web Pages → Site Settings →
+Permissions → Notifications**; allow Nanny's domain there as well as checking
+Android's separate app notification controls:
+https://vivaldi.com/blog/tips/android-tips/tip-548/
 
 ## Server setup after main CI
 

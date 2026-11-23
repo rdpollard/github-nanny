@@ -68,7 +68,10 @@
 
 - [x] Implement owner-only device registration/removal with encrypted credentials.
 - [x] Implement an explicit test push, fixed messages and safe notification clicks.
-- [ ] Deploy device setup and verify actual background receipt on owner devices.
+- [x] Deploy device setup and privately install validated server keys.
+- [x] Verify registration and actual Vivaldi receipt on Windows 11 (browser/PWA).
+- [ ] Resolve Android Vivaldi display after provider-accepted tests.
+- [ ] Verify Linux and final cross-device background receipt.
 - [ ] Implement standards-based Web Push and stable notification tags.
 - [ ] Retry transient push failures and expire invalid subscriptions.
 - [ ] Link notices to relevant run activity, including failed/cancelled runs.

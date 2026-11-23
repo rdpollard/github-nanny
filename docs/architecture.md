@@ -20,7 +20,8 @@ been deployed. The owner activated scheduled checks and verified the public
 dashboard showing confirmed idle across the four public repositories. A real
 signed completed-workflow event and its persisted terminal run/attempt are
 verified. Owner-only encrypted device registration and explicit test pushes are
-implemented in the next milestone; automatic idle dispatch remains planned. See [reconciliation.md](reconciliation.md) for the new runtime contract.
+deployed with server keys installed; actual device receipt remains to be verified.
+Automatic idle dispatch remains planned. See [reconciliation.md](reconciliation.md) for the new runtime contract.
 
 ## Frontend and framework choice
 
@@ -353,7 +354,7 @@ once display on all devices.
 | Runs/attempts (implemented) | Sanitized active-run document and latest signed attempt/status with REST accounting time |
 | Webhook deliveries (implemented) | Unique delivery IDs, scope generation and receive time, with opportunistic expiry cleanup |
 | Monitor state (implemented) | Scope/revision fencing, phase, activity latch, epoch, quiet candidate, last complete scan, disabled notice readiness |
-| Push subscriptions (implemented, awaiting deployment) | Owner-bound encrypted endpoint/keys, registration metadata and rate-limited explicit tests |
+| Push subscriptions (deployed, device verification pending) | Owner-bound encrypted endpoint/keys, registration metadata and rate-limited explicit tests |
 | Notification outbox (atomic creation implemented, disabled) | Stable epoch and relevant run link; delivery/retry state still planned |
 
 Internal short retention for notice links/deduplication does not imply a history

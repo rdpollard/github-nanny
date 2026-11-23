@@ -10,8 +10,8 @@ cancellation, and other terminal conclusions all count as finished.
 Automatic checks are deployed and enabled. The owner verified the public
 dashboard showing confirmed idle across four repositories, and hosted checks
 cover all four without errors. Real signed workflow delivery is also verified.
-The next source milestone adds encrypted owner-only device registration and
-a test-notification button; it awaits CI, setup and deployment. Automatic idle
+Encrypted owner-only device registration and a test-notification button are
+deployed with server keys configured; actual device receipt remains to be verified. Automatic idle
 notifications remain disabled.
 
 - Responsive React dashboard, filters, compact mode and light/dark themes,
