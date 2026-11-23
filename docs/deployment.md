@@ -49,13 +49,44 @@ minute schedule and enabled monitoring preserved. No migration was needed.
 Hosted verification confirmed enabled checks with no errors or failure backoff;
 notification readiness remains zero.
 
-## Push-device preparation
+## Push-device deployment
 
-The next source milestone adds migration 0006, encrypted owner-only device
-registration and an explicit test push. It awaits CI, key setup, deployment and
-real-device receipt verification. Neither automatic idle dispatch nor production
-notice readiness is enabled by this change. See push-devices.md for setup and
-privacy boundaries.
+Main CI run `45274694200` passed for merge commit
+`bf2378162a63df00294a0396712af01b3cccc3c0`. Migration
+`0006_push_devices.sql` applied successfully to hosted D1. Fresh VAPID and
+storage secrets were generated into owner-only files outside the repository,
+validated without printing values and imported through Wrangler stdin. Secret
+metadata confirmed both new names and preservation of all existing names.
+
+The built Worker/assets were deployed manually as Cloudflare version
+`dc804f5c-41af-4b5c-b9ee-c9f414d9299c`. The minute schedule and existing enabled
+monitoring were preserved. Automatic GitHub deployment remains disabled, and
+no paid resources were provisioned.
+
+HTTPS probes confirmed the current homepage/settings bundle, new service-worker
+push handler, health, configured owner sign-in and uncached four-repository
+status. Unsigned push settings and test requests returned 401. No owner cookie
+was fabricated, no subscription was enrolled and no real test push was sent by
+these probes. The live owner settings/readiness and actual background receipt
+remain to be verified in the owner's browser.
+
+Hosted D1 confirmed monitoring enabled with no errors/backoff, zero devices,
+zero pending notices and notification readiness zero. Automatic idle alerts
+remain disabled. The owner subsequently verified actual Windows 11 Vivaldi receipt in browser
+and installed-PWA use, including tests initiated from Android. The owner clarified that Android Vivaldi also receives notifications in the
+notification shade, with no foreground banner. A read-only D1
+check confirmed both devices' last tests were accepted by their push service.
+Windows and Android transport/display are verified; background and lock-screen
+presentation remain acceptance checks. See push-devices.md.
+
+## Automatic idle alert preparation
+
+The next source milestone adds migration 0007, explicit owner alert activation,
+transactional recipient snapshots, guarded per-device delivery/retries and safe
+run-link navigation. It awaits CI and deployment. Existing verified device
+registrations and secrets are preserved, and alerts remain off until the owner
+clicks Enable. No engineering CI watcher or Codex auto-resume is installed.
+See idle-alerts.md for budgets, activation and end-to-end checks.
 
 ## Signed webhook deployment
 

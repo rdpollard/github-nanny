@@ -1,11 +1,29 @@
 # Owner push devices and test notifications
 
-This milestone implements owner-only device registration, encrypted subscription
-storage and an explicit test notification. It awaits CI, migration, server-key
-setup and deployment. It does not enable automatic idle notifications, change
-the idle activity latch or dispatch pending idle epochs. The next milestone
-connects delivery/retries to the existing transactional idle outbox after real
-browser receipt is verified.
+Owner-only device registration, encrypted subscription storage and explicit test
+notifications are deployed, with server keys installed. Actual registration and
+background receipt on owner devices remain to be verified. It does not enable automatic idle notifications, change
+the idle activity latch or dispatch pending idle epochs. Automatic delivery/retries are now implemented in the next source milestone;
+see idle-alerts.md for activation and verification.
+
+## Current device verification
+
+The owner verified actual Vivaldi receipt on Windows 11, both browser-only and
+installed PWA, including tests initiated from Android settings. Android 17 with
+Vivaldi 8.3.4192.96 also receives the notification in its notification shade.
+The owner clarified that the missing behavior was a banner while the app was
+open, rather than failed push receipt. Both devices' provider acceptance was
+independently verified in hosted D1. Background/locked-phone behavior and Linux
+receipt remain final acceptance checks.
+
+Repeated test notifications share a tag and can update an existing notification
+quietly. Android's foreground banner presentation is controlled by browser/OS
+notification categories. Website permission settings are documented at:
+https://vivaldi.com/blog/tips/android-tips/tip-548/
+
+Automatic delivery is implemented in the next source milestone; see
+[idle-alerts.md](idle-alerts.md). It requires explicit owner activation after
+CI/deployment. The shipped device-test milestone keeps automatic alerts off.
 
 ## Server setup after main CI
 

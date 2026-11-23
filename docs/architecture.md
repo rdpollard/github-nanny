@@ -20,7 +20,11 @@ been deployed. The owner activated scheduled checks and verified the public
 dashboard showing confirmed idle across the four public repositories. A real
 signed completed-workflow event and its persisted terminal run/attempt are
 verified. Owner-only encrypted device registration and explicit test pushes are
-implemented in the next milestone; automatic idle dispatch remains planned. See [reconciliation.md](reconciliation.md) for the new runtime contract.
+deployed with server keys installed and Windows/Android Vivaldi receipt verified.
+Automatic idle dispatch and retries are implemented in the next source milestone,
+pending CI, deployment and explicit owner activation. See
+[idle-alerts.md](idle-alerts.md) and [reconciliation.md](reconciliation.md) for
+the runtime contracts.
 
 ## Frontend and framework choice
 
@@ -309,18 +313,18 @@ silent. Observed active runs arm a later epoch; another active run clears the
 candidate and cancels an unsent old idle notice. A failed scan breaks the quiet
 interval, clears run details and sets unknown while retaining the activity
 latch. Pending notices are paused while unknown, so coverage recovery can
-release the same epoch rather than lose it. A future dispatcher must require
+release the same epoch rather than lose it. The dispatcher requires
 enabled notices, current scope/epoch, fresh complete state and phase idle before
-sending, and revalidate visibility of the relevant link.
+sending. The immediately preceding full scan revalidates public visibility;
+D1 authorization is rechecked after encryption and before each push.
 
 Migration 0003 creates monitor_state and idle_outbox, initialized against the
-existing scope revision. notice_enabled defaults to zero and has no public or
-owner API to enable it in this milestone. No outbox rows can be created by
+existing scope revision. notice_enabled defaults to zero. The owner alert-activation API resets old
+confidence/activity before enabling it; see idle-alerts.md. No outbox rows can be created by
 production-default manual checks, even after internal stabilization. Tests
 enable it only in isolated D1 fixtures to verify the real transactional path.
-Activation must reset state with fresh coverage after webhook/reconciliation
-integration; enabling this flag alone is not a supported rollout operation.
-Internal phase values are not exposed as public current status or notifications.
+Enabling this flag directly is not a supported rollout operation. Actual
+dispatch requires a subsequent fresh successful full scan and all delivery guards.
 
 Scope save/disconnect batches reset monitor confidence, activity, runs, quiet
 candidate, link and notification readiness and remove pending old-scope notices
@@ -337,7 +341,7 @@ real GitHub delivery verification remains after deployment and secret setup.
 
 Explicit test pushes are implemented separately from idle decisions; see
 [push-devices.md](push-devices.md). They never enable outbox creation or claim
-GitHub is idle. The planned automatic delivery consumes the outbox with
+GitHub is idle. Automatic delivery consumes the outbox with
 per-device delivery tracking and retry
 backoff. A notice is not marked sent before a push service accepts it. An ambiguous
 network failure can duplicate delivery; use a stable notification tag per epoch
@@ -353,8 +357,8 @@ once display on all devices.
 | Runs/attempts (implemented) | Sanitized active-run document and latest signed attempt/status with REST accounting time |
 | Webhook deliveries (implemented) | Unique delivery IDs, scope generation and receive time, with opportunistic expiry cleanup |
 | Monitor state (implemented) | Scope/revision fencing, phase, activity latch, epoch, quiet candidate, last complete scan, disabled notice readiness |
-| Push subscriptions (implemented, awaiting deployment) | Owner-bound encrypted endpoint/keys, registration metadata and rate-limited explicit tests |
-| Notification outbox (atomic creation implemented, disabled) | Stable epoch and relevant run link; delivery/retry state still planned |
+| Push subscriptions (Windows/Android receipt verified) | Owner-bound encrypted endpoint/keys, registration metadata and rate-limited explicit tests |
+| Notification outbox and per-device delivery (implemented, activation pending) | Atomic epoch/recipient snapshot, leases, fixed outcomes, bounded retries and expiry |
 
 Internal short retention for notice links/deduplication does not imply a history
 view. Avoid retaining workflow logs or full webhook payloads unnecessarily.

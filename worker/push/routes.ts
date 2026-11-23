@@ -56,7 +56,7 @@ export async function pushRoute(request: Request, env: Bindings, owner: AuthConf
     const device = await store.claim(value.id);
     try {
       const payload = await buildPushPayload({ data: { version: 1, kind: 'test', title: 'GitHub Nanny test',
-        body: 'Push delivery is working. Automatic idle alerts are not enabled yet.', path: '/' },
+        body: 'This is a test notification from GitHub Nanny.', path: '/' },
         options: { ttl: 60, urgency: 'normal', topic: 'nanny-test' } }, device.subscription, config.vapid);
       const response = await fetcher(device.subscription.endpoint, { ...payload, redirect: 'manual', signal: AbortSignal.timeout(10_000) });
       await response.body?.cancel();

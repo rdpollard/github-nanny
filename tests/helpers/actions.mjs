@@ -38,6 +38,7 @@ export async function actionsFixture(overrides = {}) {
   const control = {
     mode: 'active', beforeActions: async () => {}, beforeInventory: async () => {},
     page: null, metadata: null, privateInventory: false, missingOrganization: false,
+    push: null,
   };
   const worker = await runtimeWorker({
     modules: true, scriptPath: 'dist/github_nanny/index.js', compatibilityDate: '2026-11-19',
@@ -45,6 +46,7 @@ export async function actionsFixture(overrides = {}) {
     outboundService: async request => {
       const url = new URL(request.url);
       calls.push({ url: url.href, method: request.method });
+      if (url.origin !== 'https://api.github.com' && control.push) return control.push(request);
       assert.equal(url.origin, 'https://api.github.com');
       if (url.pathname === '/users/rdpollard/installation' || url.pathname === '/orgs/stormbots/installation') {
         const org = url.pathname.startsWith('/orgs/');

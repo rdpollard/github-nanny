@@ -125,7 +125,7 @@ export function App() {
 
       <footer className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t pt-5 text-xs text-muted-foreground">
         <p>{snapshot.checkedAt ? `Last checked ${new Date(snapshot.checkedAt).toLocaleTimeString()}` : 'No live check completed yet'}</p>
-        <p className="flex items-center gap-1"><Bell aria-hidden="true" className="size-3" />Idle push notifications are not connected yet</p>
+        <p className="flex items-center gap-1"><Bell aria-hidden="true" className="size-3" />{snapshot.alertsEnabled ? 'Idle push alerts enabled' : 'Idle push alerts are off'}</p>
       </footer>
     </main>
   );

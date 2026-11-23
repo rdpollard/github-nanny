@@ -100,7 +100,7 @@ test('an explicit test uses interoperable encrypted payload/VAPID, targets only 
     assert.equal(sent.headers['content-encoding'], 'aes128gcm'); assert.equal(sent.headers.ttl, '60');
     verifyVapid(sent.headers.authorization, f.keys, sent.url);
     assert.deepEqual(decryptPush(sent.body, browser), { version: 1, kind: 'test', title: 'GitHub Nanny test',
-      body: 'Push delivery is working. Automatic idle alerts are not enabled yet.', path: '/' });
+      body: 'This is a test notification from GitHub Nanny.', path: '/' });
     assert.equal((await f.row(id)).last_result, 'accepted');
     assert.equal((await f.request('POST', { id }, true)).status, 409); assert.equal(f.calls.length, 1);
     assert.equal((await f.db.prepare('SELECT notice_enabled FROM monitor_state').first()).notice_enabled, 0);

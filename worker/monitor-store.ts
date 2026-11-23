@@ -30,7 +30,7 @@ export function resetMonitorScope(database: D1DatabaseSession): D1PreparedStatem
 }
 
 function safeInteger(value: number | null): boolean { return value === null || (Number.isSafeInteger(value) && value >= 0); }
-function validLink(link: string, scope: SavedMonitoringScope): boolean {
+export function validLink(link: string, scope: SavedMonitoringScope): boolean {
   return scope.repositories.some(repo => {
     const prefix = `${repo.url}/actions/runs/`;
     return link.startsWith(prefix) && /^[1-9]\d{0,15}\/attempts\/[1-9]\d{0,15}$/.test(link.slice(prefix.length));
@@ -126,6 +126,11 @@ export class MonitorStore {
       database.prepare(`INSERT INTO idle_outbox (epoch, scope_revision, created_at, run_url)
         SELECT idle_epoch, scope_revision, last_complete_at, last_run_url FROM monitor_state
         WHERE singleton = 1 AND commit_key = ? AND notice_enabled = 1 AND phase = 'idle' AND idle_epoch = ?`)
+        .bind(marker, notice),
+      database.prepare(`INSERT INTO idle_deliveries (epoch, device_id, device_revision)
+        SELECT o.epoch, p.id, p.revision FROM idle_outbox o JOIN monitor_state m ON m.idle_epoch = o.epoch
+          JOIN alert_control a ON a.singleton = m.singleton JOIN push_devices p ON p.owner_id = a.owner_id AND p.key_id = a.key_id
+        WHERE m.commit_key = ? AND o.epoch = ? AND (p.expires_at IS NULL OR p.expires_at > o.created_at)`)
         .bind(marker, notice),
       database.prepare(`DELETE FROM idle_outbox WHERE EXISTS
         (SELECT 1 FROM monitor_state WHERE singleton = 1 AND commit_key = ? AND phase = 'busy')`).bind(marker),
