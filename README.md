@@ -10,7 +10,9 @@ cancellation, and other terminal conclusions all count as finished.
 Automatic checks are deployed and enabled. The owner verified the public
 dashboard showing confirmed idle across four repositories, and hosted checks
 cover all four without errors. Real signed workflow delivery is also verified.
-Push notifications are the next milestone.
+The next source milestone adds encrypted owner-only device registration and
+a test-notification button; it awaits CI, setup and deployment. Automatic idle
+notifications remain disabled.
 
 - Responsive React dashboard, filters, compact mode and light/dark themes,
   adapted from GitHub Workflow Dashboard; explicit sample preview at `/?demo=1`.
@@ -74,6 +76,7 @@ layout, unknown live status, service worker registration, and offline navigation
 - [Cloudflare and GitHub setup](docs/setup.md)
 - [GitHub owner connection setup](docs/github-connection.md)
 - [GitHub webhook receiver and setup](docs/webhooks.md)
+- [Push devices and test notifications](docs/push-devices.md)
 - [Initial deployment and CI connection status](docs/deployment.md)
 - [Upstream evaluation and attribution](docs/upstream.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)

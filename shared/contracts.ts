@@ -96,6 +96,22 @@ export interface MonitoringControl {
   lastError: string | null;
 }
 
+export interface PushDevice {
+  id: string;
+  label: string;
+  ready: boolean;
+  createdAt: string;
+  expiresAt: string | null;
+  lastTestAt: string | null;
+  lastResult: 'accepted' | 'temporary' | 'rejected' | 'unavailable' | null;
+  testNotBefore: string;
+}
+export interface PushSettings {
+  configured: boolean;
+  applicationServerKey: string | null;
+  devices: PushDevice[];
+}
+
 export interface ActionsCheck {
   scopeRevision: number;
   startedAt: string;

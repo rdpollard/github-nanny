@@ -42,7 +42,20 @@ periodically returned unknown despite consecutive successful empty checks. The
 correction maintains confirmed idle using the latest complete-check time; a real
 observation gap still requires fresh confirmation. Unit and real D1 regression
 coverage includes ten minutes of quiet checks, outage recovery and unchanged
-idle epoch/outbox count. The correction awaits CI and deployment.
+idle epoch/outbox count. Main CI run 45256943550 passed for merge commit
+`e954d3d50f7a4df09ddc39f79094c2c2cd43d347`. The correction was deployed as
+Cloudflare version `05370a37-313d-472c-9ca7-267c843fc9c2`, with the existing
+minute schedule and enabled monitoring preserved. No migration was needed.
+Hosted verification confirmed enabled checks with no errors or failure backoff;
+notification readiness remains zero.
+
+## Push-device preparation
+
+The next source milestone adds migration 0006, encrypted owner-only device
+registration and an explicit test push. It awaits CI, key setup, deployment and
+real-device receipt verification. Neither automatic idle dispatch nor production
+notice readiness is enabled by this change. See push-devices.md for setup and
+privacy boundaries.
 
 ## Signed webhook deployment
 

@@ -10,6 +10,7 @@ import { DatabaseSessions, type SessionStore } from './sessions.ts';
 import { MonitoringScopeStore, ScopeError, scopeKey, verifiedScopeRepositories } from '../github/scope-store.ts';
 import { checkActions, ActionsCheckError, sameRepositories } from '../github/actions.ts';
 import { ControlStore, ControlConflict } from '../monitor-control.ts';
+import { pushRoute } from '../push/routes.ts';
 
 export const privateHeaders = {
   'Cache-Control': 'no-store', Vary: 'Cookie', 'X-Content-Type-Options': 'nosniff',
@@ -63,6 +64,7 @@ export async function authRoute(request: Request, env: Bindings, options: AuthOp
     ['/api/admin/monitoring', 'GET, POST, DELETE'],
     ['/api/admin/actions', 'POST'],
     ['/api/admin/reconciliation', 'GET, POST, DELETE'],
+    ['/api/admin/push', 'GET, POST, DELETE'], ['/api/admin/push/test', 'POST'],
   ]);
   const method = routes.get(url.pathname);
   if (!method) return null;
@@ -140,6 +142,7 @@ async function configuredAuthRoute(request: Request, env: Bindings, options: Aut
   const current = await session(request, config, sessions, now);
   const owner = current.view;
   if (!owner.authenticated) return json({ error: 'Owner sign-in required' }, 401);
+  if (url.pathname === '/api/admin/push' || url.pathname === '/api/admin/push/test') return pushRoute(request, env, config, options.fetcher);
   if (url.pathname === '/api/admin/reconciliation') {
     if (request.headers.get('Sec-Fetch-Site') === 'cross-site' ||
       (request.method !== 'GET' && request.headers.get('Origin') !== config.origin)) return json({ error: 'Invalid request origin' }, 403);

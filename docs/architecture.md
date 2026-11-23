@@ -19,8 +19,8 @@ reconciliation. D1 sessions, scope, manual checks and the signed receiver have
 been deployed. The owner activated scheduled checks and verified the public
 dashboard showing confirmed idle across the four public repositories. A real
 signed completed-workflow event and its persisted terminal run/attempt are
-verified. Push remains
-planned. See [reconciliation.md](reconciliation.md) for the new runtime contract.
+verified. Owner-only encrypted device registration and explicit test pushes are
+implemented in the next milestone; automatic idle dispatch remains planned. See [reconciliation.md](reconciliation.md) for the new runtime contract.
 
 ## Frontend and framework choice
 
@@ -335,7 +335,10 @@ The webhook ledger stores only latest-attempt IDs/status/timing and delivery
 IDs, not full payloads or a history view. Signing and ordering are runtime-tested;
 real GitHub delivery verification remains after deployment and secret setup.
 
-Push delivery consumes the outbox with per-device delivery tracking and retry
+Explicit test pushes are implemented separately from idle decisions; see
+[push-devices.md](push-devices.md). They never enable outbox creation or claim
+GitHub is idle. The planned automatic delivery consumes the outbox with
+per-device delivery tracking and retry
 backoff. A notice is not marked sent before a push service accepts it. An ambiguous
 network failure can duplicate delivery; use a stable notification tag per epoch
 to reduce duplicates. Expired subscriptions are removed. Do not promise exact
@@ -350,7 +353,7 @@ once display on all devices.
 | Runs/attempts (implemented) | Sanitized active-run document and latest signed attempt/status with REST accounting time |
 | Webhook deliveries (implemented) | Unique delivery IDs, scope generation and receive time, with opportunistic expiry cleanup |
 | Monitor state (implemented) | Scope/revision fencing, phase, activity latch, epoch, quiet candidate, last complete scan, disabled notice readiness |
-| Push subscriptions | Private endpoint and keys for each authorized device |
+| Push subscriptions (implemented, awaiting deployment) | Owner-bound encrypted endpoint/keys, registration metadata and rate-limited explicit tests |
 | Notification outbox (atomic creation implemented, disabled) | Stable epoch and relevant run link; delivery/retry state still planned |
 
 Internal short retention for notice links/deduplication does not imply a history
