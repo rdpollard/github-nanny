@@ -7,9 +7,10 @@ cancellation, and other terminal conclusions all count as finished.
 
 ## Current status
 
-The current source adds owner-activated automatic checks and a live public
-status feed. This release still needs CI, deployment, real signed-delivery
-verification and owner activation. Push notifications remain the next milestone.
+Automatic checks are deployed and enabled. The owner verified the public
+dashboard showing confirmed idle across four repositories, and hosted checks
+cover all four without errors. Real signed workflow delivery is also verified.
+Push notifications are the next milestone.
 
 - Responsive React dashboard, filters, compact mode and light/dark themes,
   adapted from GitHub Workflow Dashboard; explicit sample preview at `/?demo=1`.

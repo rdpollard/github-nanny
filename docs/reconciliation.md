@@ -1,7 +1,8 @@
 # Automatic Actions checks
 
-This release implements continuous checks and a public live feed. It awaits
-CI, migration/deployment, verification of real signed events and owner activation.
+Continuous checks are deployed and owner-activated. The owner verified the
+public idle dashboard across four repositories, and a real signed completed
+workflow event is verified.
 Web Push and production idle-outbox creation remain disabled.
 
 ## Activation after deployment
@@ -49,6 +50,9 @@ timeouts and response/document bounds. No partial scan becomes idle. The quiet
 candidate needs a second empty scan that starts at least 10 seconds after the
 first finishes, within a 120-second candidate lifetime. Normal idle confirmation
 is roughly one to two minutes after activity ends, plus scheduling/network delay.
+Once confirmed, continuing successful empty scans preserve idle. A genuine gap
+of more than 120 seconds since the latest complete check requires another pair
+of confirming empty scans; elapsed time spent idle alone does not.
 
 Failures hide current data and back off from one minute to a maximum fifteen
 minutes. Valid GitHub Retry-After/rate-reset timestamps can extend the delay.

@@ -40,6 +40,30 @@ test('initial empty scans stabilize quietly and monitor state survives fresh sto
   } finally { await f.worker.dispose(); }
 });
 
+test('persistent idle stays stable through fresh quiet scans without duplicating its outbox epoch', async () => {
+  const f = await fixture();
+  try {
+    await f.complete(0, 1);
+    await f.complete(100);
+    await f.complete(10_101);
+    for (let time = 60_000; time <= 600_000; time += 60_000) {
+      await f.complete(time);
+      const stored = await f.rows();
+      assert.equal(stored.state.phase, 'idle');
+      assert.equal(stored.state.idle_epoch, 1);
+      assert.equal(stored.outbox.length, 1);
+      assert.equal(stored.outbox[0].epoch, 1);
+    }
+    await f.complete(800_000);
+    assert.equal((await f.rows()).state.phase, 'unknown');
+    await f.complete(810_001);
+    const recovered = await f.rows();
+    assert.equal(recovered.state.phase, 'idle');
+    assert.equal(recovered.state.idle_epoch, 1);
+    assert.equal(recovered.outbox.length, 1);
+  } finally { await f.worker.dispose(); }
+});
+
 test('busy-to-idle and its unique outbox entry commit together despite concurrent Workers', async () => {
   const f = await fixture();
   try {

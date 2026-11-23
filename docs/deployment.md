@@ -1,18 +1,48 @@
 # Deployment status
 
-## Automatic checks preparation
+## Automatic checks deployment
 
-The next release implements migration `0005_reconciliation.sql`, a one-minute
-Cron Trigger, owner Start/Pause controls and a freshness-gated public status
-feed. It awaits CI and deployment. Migration initializes controls as disabled;
-code upload alone does not call GitHub. Apply the migration before upload,
-verify the next ordinary CI workflow reaches the signed receiver, then have the
-owner activate checks in `/settings`. Notification readiness remains disabled.
-See [reconciliation.md](reconciliation.md) for verification and rollback.
+Main CI run `45129728193` passed for merge commit
+`bb3f722b9e1ebd006b313f5aadd5d568c292c9b9`. Migration
+`0005_reconciliation.sql` applied successfully to hosted D1, then the built
+Worker and assets were uploaded manually as Cloudflare version
+`b45111ff-fb28-4996-be1a-56bf251b119e`. Cloudflare registered the one-minute
+Cron Trigger. Automatic GitHub deployment remains disabled.
 
-The owner reports saving the webhook secret/subscriptions. An unsigned hosted
-POST now returns 401 rather than 503, proving secret format readiness but not
-that GitHub has the same value. Actual signed delivery still needs verification.
+HTTPS probes verified the new homepage/settings asset bundle, health 200,
+uncached paused/unknown public status, configured owner sign-in, owner-only
+reconciliation controls (401 unsigned) and webhook signature enforcement
+(401 unsigned). No owner session or signature was fabricated. The Vite build's
+redirected Wrangler configuration was used for upload; explicitly selecting the
+source config bypasses its generated asset directory and cannot upload assets.
+
+A read-only hosted query confirmed the existing four-public-repository scope at
+revision 3, matching control revision, enabled=0, no active lease, notification
+readiness=0 and no pending notices. Deployment alone has not started GitHub API
+scans. Existing secrets and owner/scope data were preserved.
+
+The first real delivery returned Invalid webhook signature. The owner rotated
+GITHUB_WEBHOOK_SECRET in both Cloudflare and GitHub, then redelivered the
+workflow_run.completed event successfully (202, ok=true). A read-only hosted
+query independently confirmed delivery d2a6d488-e70d-11f1-8d5a-acd4e809b975 and
+run 45129728193, attempt 1, completed/terminal. Signature authentication,
+configured public scope acceptance and persistence are now verified with a real
+GitHub event. The owner subsequently activated automatic checks and verified
+the public dashboard showing confirmed idle across four repositories. Hosted
+checks confirmed enabled=1, 34 requests per scan, no errors/failures, no active
+runs and no pending notices. Notification readiness remains zero; push is not
+implemented.
+See [reconciliation.md](reconciliation.md) for activation and rollback.
+
+## Steady idle correction
+
+Post-activation verification exposed the idle candidate lifetime being reused
+against the original empty observation after idle was already confirmed. That
+periodically returned unknown despite consecutive successful empty checks. The
+correction maintains confirmed idle using the latest complete-check time; a real
+observation gap still requires fresh confirmation. Unit and real D1 regression
+coverage includes ten minutes of quiet checks, outage recovery and unchanged
+idle epoch/outbox count. The correction awaits CI and deployment.
 
 ## Signed webhook deployment
 
