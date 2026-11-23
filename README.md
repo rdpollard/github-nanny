@@ -11,8 +11,9 @@ Automatic checks are deployed and enabled. The owner verified the public
 dashboard showing confirmed idle across four repositories, and hosted checks
 cover all four without errors. Real signed workflow delivery is also verified.
 Encrypted owner-only device registration and a test-notification button are
-deployed with server keys configured; actual device receipt remains to be verified. Automatic idle
-notifications remain disabled.
+deployed with server keys configured. Windows and Android Vivaldi receipt is
+verified. Automatic idle alerts and per-device retries are implemented in the
+next source milestone and await CI, deployment and owner activation.
 
 - Responsive React dashboard, filters, compact mode and light/dark themes,
   adapted from GitHub Workflow Dashboard; explicit sample preview at `/?demo=1`.
@@ -77,6 +78,7 @@ layout, unknown live status, service worker registration, and offline navigation
 - [GitHub owner connection setup](docs/github-connection.md)
 - [GitHub webhook receiver and setup](docs/webhooks.md)
 - [Push devices and test notifications](docs/push-devices.md)
+- [Automatic idle alerts](docs/idle-alerts.md)
 - [Initial deployment and CI connection status](docs/deployment.md)
 - [Upstream evaluation and attribution](docs/upstream.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)

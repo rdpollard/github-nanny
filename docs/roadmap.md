@@ -70,11 +70,12 @@
 - [x] Implement an explicit test push, fixed messages and safe notification clicks.
 - [x] Deploy device setup and privately install validated server keys.
 - [x] Verify registration and actual Vivaldi receipt on Windows 11 (browser/PWA).
-- [ ] Resolve Android Vivaldi display after provider-accepted tests.
+- [x] Verify Android Vivaldi receipt in the notification shade; foreground banners differ.
 - [ ] Verify Linux and final cross-device background receipt.
-- [ ] Implement standards-based Web Push and stable notification tags.
-- [ ] Retry transient push failures and expire invalid subscriptions.
-- [ ] Link notices to relevant run activity, including failed/cancelled runs.
+- [x] Implement standards-based Web Push and stable per-epoch notification tags.
+- [x] Implement bounded per-device idle retries and expiry/renewal fencing.
+- [x] Implement canonical run-attempt links for completed activity, regardless of conclusion.
+- [ ] Deploy and activate automatic idle alerts, then verify real end-to-end receipt.
 - [ ] Add final PNG/maskable/apple icons and verify install behavior.
 - [ ] Verify background push on the actual phone and Windows/Linux browsers.
 - [ ] iOS: Home Screen install, iOS 16.4+, explicit notification permission.

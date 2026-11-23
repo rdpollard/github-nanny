@@ -73,11 +73,20 @@ remain to be verified in the owner's browser.
 Hosted D1 confirmed monitoring enabled with no errors/backoff, zero devices,
 zero pending notices and notification readiness zero. Automatic idle alerts
 remain disabled. The owner subsequently verified actual Windows 11 Vivaldi receipt in browser
-and installed-PWA use, including tests initiated from Android. Android Vivaldi
-registers but visible notification receipt is still unresolved. A read-only D1
+and installed-PWA use, including tests initiated from Android. The owner clarified that Android Vivaldi also receives notifications in the
+notification shade, with no foreground banner. A read-only D1
 check confirmed both devices' last tests were accepted by their push service.
-Phone notification controls and version information are the next diagnostic
-steps. See push-devices.md.
+Windows and Android transport/display are verified; background and lock-screen
+presentation remain acceptance checks. See push-devices.md.
+
+## Automatic idle alert preparation
+
+The next source milestone adds migration 0007, explicit owner alert activation,
+transactional recipient snapshots, guarded per-device delivery/retries and safe
+run-link navigation. It awaits CI and deployment. Existing verified device
+registrations and secrets are preserved, and alerts remain off until the owner
+clicks Enable. No engineering CI watcher or Codex auto-resume is installed.
+See idle-alerts.md for budgets, activation and end-to-end checks.
 
 ## Signed webhook deployment
 

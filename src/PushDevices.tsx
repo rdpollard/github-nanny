@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { PushSettings } from '../shared/contracts';
+import type { AlertSettings, PushSettings } from '../shared/contracts';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 
@@ -7,13 +7,14 @@ function publicKey(value: string): Uint8Array<ArrayBuffer> {
   return Uint8Array.from(atob(value.replaceAll('-', '+').replaceAll('_', '/') + '='.repeat((4 - value.length % 4) % 4)), c => c.charCodeAt(0));
 }
 
-export function PushDevices() {
+export function PushDevices({ refreshKey = 0 }: { refreshKey?: number }) {
   const [settings, setSettings] = useState<PushSettings | null>(null);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [label, setLabel] = useState('This browser');
+  const [alerts, setAlerts] = useState<AlertSettings | null>(null);
   const supported = window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
   useEffect(() => {
@@ -21,7 +22,7 @@ export function PushDevices() {
     void load(controller.signal);
     if (supported) void navigator.serviceWorker.ready.then(value => { if (!controller.signal.aborted) setRegistration(value); });
     return () => controller.abort();
-  }, [supported]);
+  }, [supported, refreshKey]);
 
   async function request<T = Record<string, unknown>>(method: string, path = '/api/admin/push', value?: object, signal?: AbortSignal): Promise<T> {
     const response = await fetch(path, { method, cache: 'no-store', credentials: 'same-origin', signal,
@@ -33,7 +34,10 @@ export function PushDevices() {
   }
   async function load(signal?: AbortSignal) {
     setBusy(true); setError(null);
-    try { const value = await request<PushSettings>('GET', undefined, undefined, signal); if (!signal?.aborted) setSettings(value); }
+    try {
+      const [value, alertValue] = await Promise.all([request<PushSettings>('GET', undefined, undefined, signal), request<AlertSettings>('GET', '/api/admin/alerts', undefined, signal)]);
+      if (!signal?.aborted) { setSettings(value); setAlerts(alertValue); }
+    }
     catch (error) { if (!signal?.aborted) { setSettings(null); setError(error instanceof Error ? error.message : 'Push settings are unavailable.'); } }
     finally { if (!signal?.aborted) setBusy(false); }
   }
@@ -55,7 +59,7 @@ export function PushDevices() {
       subscription ??= await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
       await request('POST', undefined, { label, subscription: subscription.toJSON() });
       await load();
-      setMessage('Browser registered. Send a test below and confirm this device displays it. Automatic idle alerts are not enabled yet.');
+      setMessage('Browser registered. Send a test below and confirm this device displays it.');
     } catch (error) { setError(error instanceof Error ? error.message : 'This browser could not be registered.'); }
     finally { setBusy(false); }
   }
@@ -70,8 +74,17 @@ export function PushDevices() {
       setError(error instanceof Error ? error.message : 'The device could not be updated.');
     } finally { setBusy(false); }
   }
+  async function manageAlerts(enable: boolean) {
+    setBusy(true); setError(null); setMessage(null);
+    try {
+      await request(enable ? 'POST' : 'DELETE', '/api/admin/alerts');
+      await load();
+      setMessage(enable ? 'Idle alerts enabled. After observed activity, a fresh confirmed idle period sends one alert to each registered device.' : 'Idle alerts disabled. Automatic Actions checks continue.');
+    } catch (error) { setError(error instanceof Error ? error.message : 'Idle alerts could not be updated.'); }
+    finally { setBusy(false); }
+  }
   return <Card className="mt-6">
-    <CardHeader><CardTitle>Push devices</CardTitle><CardDescription>Register each browser while signed in, then verify a test notification. Automatic idle alerts are not enabled yet.</CardDescription></CardHeader>
+    <CardHeader><CardTitle>Push devices</CardTitle><CardDescription>Register each browser while signed in and verify a test notification, then enable idle alerts below.</CardDescription></CardHeader>
     <CardContent className="space-y-4">
       {!supported && <p>This browser does not support Web Push here. On iPhone or iPad, add Nanny to the Home Screen and open the installed app (iOS 16.4 or newer).</p>}
       {settings && !settings.configured && <p>Server push setup is pending.</p>}
@@ -96,6 +109,19 @@ export function PushDevices() {
           </div>
         </li>)}
       </ul>}
+      <section aria-label="Idle alert controls" className="space-y-3 border-t pt-4">
+        <h2 className="font-semibold">Automatic idle alerts</h2>
+        {alerts && <>
+          <p role="status">{alerts.enabled ? 'Idle alerts are enabled.' : 'Idle alerts are off.'}</p>
+          <p className="text-sm text-muted-foreground">Ready devices: {alerts.deviceCount}. Pending deliveries: {alerts.pendingDevices}. Recent delivery issues: {alerts.deliveryIssues}.</p>
+          {!alerts.monitoring && <p>Start automatic Actions checks before enabling alerts.</p>}
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => { void manageAlerts(true); }} disabled={busy || alerts.enabled || !alerts.configured || !alerts.monitoring || alerts.deviceCount === 0}>Enable idle alerts</Button>
+            <Button variant="outline" onClick={() => { void manageAlerts(false); }} disabled={busy}>Disable idle alerts</Button>
+          </div>
+        </>}
+        <p className="text-sm text-muted-foreground">The first quiet check stays silent. After activity ends, confirmed idle sends one notification per device with a GitHub run link. Pausing checks or changing scope turns alerts off. Background and lock-screen banners depend on browser and phone settings.</p>
+      </section>
       <p className="text-sm text-muted-foreground">Tests are limited to once per minute per device. Reload after waiting to retry. Push-service acceptance does not guarantee display; browser and operating-system settings affect delivery. Removing a device stops future sends from Nanny.</p>
     </CardContent>
   </Card>;

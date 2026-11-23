@@ -111,6 +111,14 @@ export interface PushSettings {
   applicationServerKey: string | null;
   devices: PushDevice[];
 }
+export interface AlertSettings {
+  configured: boolean;
+  monitoring: boolean;
+  enabled: boolean;
+  deviceCount: number;
+  pendingDevices: number;
+  deliveryIssues: number;
+}
 
 export interface ActionsCheck {
   scopeRevision: number;
@@ -137,6 +145,7 @@ export interface DashboardSnapshot {
   repositoryCount: number;
   runs: ActiveRun[];
   message: string | null;
+  alertsEnabled?: boolean;
 }
 
 export function unconnectedSnapshot(): DashboardSnapshot {

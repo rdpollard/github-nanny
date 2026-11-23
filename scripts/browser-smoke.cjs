@@ -105,6 +105,14 @@ const path = require('node:path');
         state.subscribed = true; return subscription;
       };
     }, { applicationKey: pushPublicKey });
+    let idleAlertsEnabled = false;
+    let idleAlertWrites = 0;
+    await page.route(`${origin}/api/admin/alerts`, route => {
+      const method = route.request().method();
+      if (method !== 'GET') { idleAlertWrites++; idleAlertsEnabled = method === 'POST'; }
+      return route.fulfill({ json: { configured: true, monitoring: automaticEnabled, enabled: idleAlertsEnabled,
+        deviceCount: pushDevices.length, pendingDevices: 0, deliveryIssues: 0 } });
+    });
     await page.route(`${origin}/api/admin/push`, async route => {
       const method = route.request().method();
       if (method === 'POST') {
@@ -233,6 +241,17 @@ const path = require('node:path');
     await page.getByRole('status').filter({ hasText: 'The push service accepted the test.' }).waitFor();
     assert.equal(pushTests, 1); assert.equal(await page.getByRole('button', { name: 'Send test to Linux browser', exact: true }).isDisabled(), true);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.getByRole('button', { name: 'Save public scope', exact: true }).click();
+    await page.getByText('Public scope saved: 1 repositories.', { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Start automatic checks', exact: true }).click();
+    await page.getByText('Automatic checks are enabled.', { exact: true }).waitFor();
+    assert.equal(idleAlertWrites, 0);
+    await page.getByRole('button', { name: 'Enable idle alerts', exact: true }).click();
+    await page.getByText('Idle alerts are enabled.', { exact: true }).waitFor();
+    assert.equal(idleAlertWrites, 1);
+    await page.getByRole('button', { name: 'Disable idle alerts', exact: true }).click();
+    await page.getByText('Idle alerts are off.', { exact: true }).waitFor();
+    assert.equal(idleAlertWrites, 2);
     await page.getByRole('button', { name: 'Remove Linux browser', exact: true }).click();
     await page.getByText('No push devices registered.', { exact: true }).waitFor();
     let logoutAllRequests = 0;
@@ -254,6 +273,7 @@ const path = require('node:path');
     await page.unroute(`${origin}/api/admin/reconciliation`);
     await page.unroute(`${origin}/api/admin/push`);
     await page.unroute(`${origin}/api/admin/push/test`);
+    await page.unroute(`${origin}/api/admin/alerts`);
     await page.getByRole('link', { name: 'Back to dashboard', exact: true }).click();
     await page.getByRole('heading', { name: 'Status unavailable' }).waitFor();
     let liveUnavailable = false;

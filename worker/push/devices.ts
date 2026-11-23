@@ -66,7 +66,8 @@ export class DeviceStore {
       SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE (SELECT count(*) FROM push_devices WHERE owner_id = ?) < 10
         OR EXISTS (SELECT 1 FROM push_devices WHERE id = ? AND owner_id = ?)
       ON CONFLICT(id) DO UPDATE SET label = excluded.label, key_id = excluded.key_id, encrypted = excluded.encrypted,
-        updated_at = excluded.updated_at, expires_at = excluded.expires_at, send_token = NULL, last_test_at = NULL, last_result = NULL
+        updated_at = excluded.updated_at, expires_at = excluded.expires_at, send_token = NULL, last_test_at = NULL, last_result = NULL,
+        revision = push_devices.revision + 1
       WHERE push_devices.owner_id = excluded.owner_id RETURNING id`)
       .bind(id, this.owner, label.trim(), this.config.keyId, encrypted, now, now, clean.expirationTime, this.owner, id, this.owner).first<{ id: string }>();
     if (!row) throw new PushFault(409, 'Remove an old device before adding another; the limit is ten');
@@ -75,6 +76,15 @@ export class DeviceStore {
   async remove(id: string): Promise<void> {
     const result = await this.db.prepare('DELETE FROM push_devices WHERE id = ? AND owner_id = ?').bind(id, this.owner).run();
     if (!result.success) throw new Error('Push storage unavailable');
+  }
+  async forDelivery(id: string, revision: number): Promise<PushSubscription | null> {
+    const row = await this.db.prepare('SELECT encrypted FROM push_devices WHERE id = ? AND owner_id = ? AND key_id = ? AND revision = ?')
+      .bind(id, this.owner, this.config.keyId, revision).first<{ encrypted: string }>();
+    if (!row) return null;
+    const [iv, ciphertext, extra] = row.encrypted.split('.');
+    if (extra !== undefined) throw new Error('Invalid ciphertext');
+    const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: decode(iv, 12), additionalData: this.aad(id) }, this.config.storage, decode(ciphertext));
+    return subscription(JSON.parse(new TextDecoder().decode(plaintext)));
   }
   async claim(id: string, now = Date.now()): Promise<ClaimedDevice> {
     const token = crypto.randomUUID();

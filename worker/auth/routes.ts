@@ -11,6 +11,7 @@ import { MonitoringScopeStore, ScopeError, scopeKey, verifiedScopeRepositories }
 import { checkActions, ActionsCheckError, sameRepositories } from '../github/actions.ts';
 import { ControlStore, ControlConflict } from '../monitor-control.ts';
 import { pushRoute } from '../push/routes.ts';
+import { alertRoute } from '../push/alerts.ts';
 
 export const privateHeaders = {
   'Cache-Control': 'no-store', Vary: 'Cookie', 'X-Content-Type-Options': 'nosniff',
@@ -65,6 +66,7 @@ export async function authRoute(request: Request, env: Bindings, options: AuthOp
     ['/api/admin/actions', 'POST'],
     ['/api/admin/reconciliation', 'GET, POST, DELETE'],
     ['/api/admin/push', 'GET, POST, DELETE'], ['/api/admin/push/test', 'POST'],
+    ['/api/admin/alerts', 'GET, POST, DELETE'],
   ]);
   const method = routes.get(url.pathname);
   if (!method) return null;
@@ -142,6 +144,7 @@ async function configuredAuthRoute(request: Request, env: Bindings, options: Aut
   const current = await session(request, config, sessions, now);
   const owner = current.view;
   if (!owner.authenticated) return json({ error: 'Owner sign-in required' }, 401);
+  if (url.pathname === '/api/admin/alerts') return alertRoute(request, env, config);
   if (url.pathname === '/api/admin/push' || url.pathname === '/api/admin/push/test') return pushRoute(request, env, config, options.fetcher);
   if (url.pathname === '/api/admin/reconciliation') {
     if (request.headers.get('Sec-Fetch-Site') === 'cross-site' ||

@@ -27,7 +27,7 @@ test('push events display a visible test or neutral fallback and never assert id
   const w = worker();
   await w.emit('push', { data: { json: () => ({ version: 1, kind: 'test', title: 'GitHub is idle', path: 'https://evil.example' }) } });
   assert.equal(w.notifications[0].title, 'GitHub Nanny test');
-  assert.match(w.notifications[0].options.body, /Automatic idle alerts are not enabled/);
+  assert.match(w.notifications[0].options.body, /This is a test notification/);
   assert.equal(w.notifications[0].options.tag, 'github-nanny-test');
   for (const data of [undefined, { json: () => { throw new Error('Malformed payload'); } }, { json: () => ({ version: 1, kind: 'idle' }) }]) {
     await w.emit('push', { data });
@@ -47,4 +47,19 @@ test('notification clicks focus or open only the app and ignore payload navigati
   w.setWindows([{ url: 'https://nanny.example/settings', navigate: async () => {}, focus: async () => { throw new Error('Window closed'); } }]);
   await click(); assert.equal(w.navigations.at(-1), 'https://nanny.example/');
   assert.equal(w.navigations.length, 3);
+});
+
+test('idle notifications use an epoch tag and only open a canonical GitHub attempt link', async () => {
+  const w = worker();
+  const url = 'https://github.com/rdpollard/github-nanny/actions/runs/123/attempts/2';
+  const payload = { version: 1, kind: 'idle', epoch: 7, url, checkedAt: new Date().toISOString() };
+  await w.emit('push', { data: { json: () => payload } });
+  assert.equal(w.notifications.at(-1)!.title, 'GitHub is idle');
+  assert.equal(w.notifications.at(-1)!.options.tag, 'github-nanny-idle-7');
+  await w.emit('notificationclick', { notification: { data: { runUrl: url }, close: () => {} } });
+  assert.equal(w.navigations.at(-1), url);
+  for (const bad of ['https://evil.example/run', 'https://github.com/owner/repo/actions/runs/123?redirect=evil', 'javascript:alert(1)']) {
+    await w.emit('push', { data: { json: () => ({ ...payload, url: bad }) } });
+    assert.equal(w.notifications.at(-1)!.title, 'GitHub Nanny');
+  }
 });

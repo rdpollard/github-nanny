@@ -20,6 +20,7 @@ export function OwnerSettings() {
   const [actionsBusy, setActionsBusy] = useState(false);
   const [actionsError, setActionsError] = useState<string | null>(null);
   const [control, setControl] = useState<MonitoringControl | null>(null);
+  const [pushRefresh, setPushRefresh] = useState(0);
   const [controlBusy, setControlBusy] = useState(false);
   const [controlError, setControlError] = useState<string | null>(null);
   const [outcome] = useState<SignInOutcome | null>(() => {
@@ -71,7 +72,7 @@ export function OwnerSettings() {
       if (!signal?.aborted) { setScope(data); await manageControl('GET', signal); }
     } catch {
       if (!signal?.aborted) setScopeError('The saved scope is unavailable. Reload it or try again.');
-    } finally { if (!signal?.aborted) setScopeBusy(false); }
+    } finally { if (!signal?.aborted) { setScopeBusy(false); setPushRefresh(value => value + 1); } }
   }
 
   async function manageControl(method: 'GET' | 'POST' | 'DELETE', signal?: AbortSignal) {
@@ -94,7 +95,7 @@ export function OwnerSettings() {
         setActions(null);
       }
     } catch { if (!signal?.aborted) setControlError('Automatic check settings are unavailable. Please reload.'); }
-    finally { if (!signal?.aborted) setControlBusy(false); }
+    finally { if (!signal?.aborted) { setControlBusy(false); setPushRefresh(value => value + 1); } }
   }
 
   async function checkActionsNow() {
@@ -241,7 +242,7 @@ export function OwnerSettings() {
             {control.enabled && <p className="text-sm text-muted-foreground">{control.nextCheckAt ? `Next check no earlier than ${new Date(control.nextCheckAt).toLocaleString()}.` : 'The first complete check should start within about a minute.'}</p>}
             {control.lastError && <p role="alert">The last automatic check could not confirm current activity. The dashboard shows unknown status until a complete check succeeds. {Object.hasOwn(ACTIONS_CHECK_MESSAGES, control.lastError) ? ACTIONS_CHECK_MESSAGES[control.lastError as keyof typeof ACTIONS_CHECK_MESSAGES] : ''}</p>}
           </>}
-          <p className="text-sm text-muted-foreground">Idle requires two complete empty checks separated by a quiet interval. Waiting for approval also blocks idle. Push notifications are not enabled yet. Pausing hides live results; it keeps your saved scope and GitHub App installation.</p>
+          <p className="text-sm text-muted-foreground">Idle requires two complete empty checks separated by a quiet interval. Waiting for approval also blocks idle. Idle alerts are managed below. Pausing hides live results; it keeps your saved scope and GitHub App installation.</p>
         </CardContent>
       </Card>}
       {session?.authenticated && <Card className="mt-6">
@@ -260,10 +261,10 @@ export function OwnerSettings() {
               </li>)}
             </ul>}
           </>}
-          <p className="text-sm text-muted-foreground">A single empty check cannot confirm global idle. Use the live dashboard for automatic status. Push notifications are not enabled yet.</p>
+          <p className="text-sm text-muted-foreground">A single empty check cannot confirm global idle. Use the live dashboard for automatic status and manage idle alerts below.</p>
         </CardContent>
       </Card>}
-      {session?.authenticated && <PushDevices />}
+      {session?.authenticated && <PushDevices refreshKey={pushRefresh} />}
     </main>
   );
 }
