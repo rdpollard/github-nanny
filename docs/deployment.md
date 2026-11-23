@@ -27,9 +27,22 @@ workflow_run.completed event successfully (202, ok=true). A read-only hosted
 query independently confirmed delivery d2a6d488-e70d-11f1-8d5a-acd4e809b975 and
 run 45129728193, attempt 1, completed/terminal. Signature authentication,
 configured public scope acceptance and persistence are now verified with a real
-GitHub event. Monitoring remains paused (enabled=0, no error) pending owner
-activation. Notification readiness remains zero; push is not implemented.
+GitHub event. The owner subsequently activated automatic checks and verified
+the public dashboard showing confirmed idle across four repositories. Hosted
+checks confirmed enabled=1, 34 requests per scan, no errors/failures, no active
+runs and no pending notices. Notification readiness remains zero; push is not
+implemented.
 See [reconciliation.md](reconciliation.md) for activation and rollback.
+
+## Steady idle correction
+
+Post-activation verification exposed the idle candidate lifetime being reused
+against the original empty observation after idle was already confirmed. That
+periodically returned unknown despite consecutive successful empty checks. The
+correction maintains confirmed idle using the latest complete-check time; a real
+observation gap still requires fresh confirmation. Unit and real D1 regression
+coverage includes ten minutes of quiet checks, outage recovery and unchanged
+idle epoch/outbox count. The correction awaits CI and deployment.
 
 ## Signed webhook deployment
 

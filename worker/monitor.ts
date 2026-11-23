@@ -58,7 +58,11 @@ export function stabilize(state: StabilizedMonitorState, scan: Scan & { startedA
     !Number.isSafeInteger(scan.startedAt) || scan.startedAt < 0 ||
     !Number.isSafeInteger(scan.finishedAt) || scan.finishedAt < scan.startedAt ||
     (state.lastCompleteAt !== null && scan.startedAt < state.lastCompleteAt)) return { state, idleNotice: null };
-  const expired = state.emptySince !== null && scan.startedAt > state.emptySince + MAX_EMPTY_GAP_MS;
+  // The first empty candidate expires while still awaiting confirmation. Once
+  // idle is confirmed, fresh complete scans maintain it; only an actual gap
+  // since the latest successful check requires another quiet interval.
+  const confidenceAt = state.phase === 'idle' ? state.lastCompleteAt ?? state.emptySince : state.emptySince;
+  const expired = confidenceAt !== null && scan.startedAt > confidenceAt + MAX_EMPTY_GAP_MS;
   if (scan.activeRunCount === 0 && (state.emptySince === null || expired || scan.startedAt < state.emptySince + IDLE_STABILIZATION_MS)) {
     return { state: { ...state, phase: 'unknown', emptySince: expired ? scan.finishedAt : state.emptySince ?? scan.finishedAt,
       lastCompleteAt: scan.finishedAt }, idleNotice: null };

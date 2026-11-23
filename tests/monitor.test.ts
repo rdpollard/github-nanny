@@ -45,6 +45,33 @@ test('stabilization rejects out-of-order scans and incomplete or invalid timing 
   ]) assert.equal(stabilize(state, scan).state, state);
 });
 
+test('fresh empty scans keep confirmed idle stable over time; an actual scan gap requires fresh confirmation', () => {
+  for (const activityObserved of [false, true]) {
+    let state = { ...initialMonitorState(), activityObserved, emptySince: null as number | null, lastCompleteAt: null as number | null };
+    const empty = (startedAt: number) => {
+      const result = stabilize(state, { revision: state.revision, complete: true, activeRunCount: 0, startedAt, finishedAt: startedAt + 1 });
+      state = result.state;
+      return result;
+    };
+    assert.equal(empty(0).state.phase, 'unknown');
+    assert.equal(empty(60_000).state.phase, 'idle');
+    const epoch = activityObserved ? 1 : 0;
+    for (let time = 120_000; time <= 600_000; time += 60_000) {
+      const result = empty(time);
+      assert.equal(result.state.phase, 'idle', `Fresh empty scan at ${time} must preserve confirmed idle`);
+      assert.equal(result.state.idleEpoch, epoch);
+      assert.equal(result.idleNotice, null);
+    }
+    // An observation gap, unlike time spent continuously idle, breaks confidence.
+    assert.equal(empty(800_000).state.phase, 'unknown');
+    assert.equal(state.emptySince, 800_001);
+    const recovered = empty(810_001);
+    assert.equal(recovered.state.phase, 'idle');
+    assert.equal(recovered.state.idleEpoch, epoch);
+    assert.equal(recovered.idleNotice, null);
+  }
+});
+
 test('initial sync can observe existing work, and every active run must finish', () => {
   const busy = reconcile(initialMonitorState(), { revision: 0, complete: true, activeRunCount: 2 });
   assert.equal(busy.state.phase, 'busy');

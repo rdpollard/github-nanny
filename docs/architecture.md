@@ -16,9 +16,10 @@ flowchart LR
 The current source includes the PWA, owner authorization, saved public scope,
 complete Actions scans, signed ingestion, and owner-activated scheduled
 reconciliation. D1 sessions, scope, manual checks and the signed receiver have
-been deployed. Scheduled reconciliation and public live status are deployed with checks
-paused, pending owner activation. A real signed completed-workflow event and
-its persisted terminal run/attempt are verified. Push remains
+been deployed. The owner activated scheduled checks and verified the public
+dashboard showing confirmed idle across the four public repositories. A real
+signed completed-workflow event and its persisted terminal run/attempt are
+verified. Push remains
 planned. See [reconciliation.md](reconciliation.md) for the new runtime contract.
 
 ## Frontend and framework choice
@@ -300,7 +301,10 @@ rolls back the state change. Competing or replayed scan tokens cannot both win.
 The first empty check records a candidate and phase unknown. Only a second
 complete scan that STARTED at least ten seconds after the first empty check
 finished can stabilize idle; a long first scan is insufficient. A candidate
-older than two minutes expires and requires a new pair of scans. Initial idle is
+older than two minutes expires and requires a new pair of scans. After idle is
+confirmed, consecutive fresh empty checks preserve it; the two-minute limit
+applies to a gap since the latest complete check, rather than total time spent
+idle. Initial idle is
 silent. Observed active runs arm a later epoch; another active run clears the
 candidate and cancels an unsent old idle notice. A failed scan breaks the quiet
 interval, clears run details and sets unknown while retaining the activity

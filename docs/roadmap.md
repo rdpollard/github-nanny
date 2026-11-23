@@ -46,7 +46,8 @@
 - [x] Deploy receiver, configure secret/subscriptions and verify a real completed workflow delivery.
 - [x] Implement active-run API with scope/freshness and access failure handling.
 - [x] Deploy automatic checks, paused controls and the gated public status feed.
-- [ ] Verify owner activation and real live busy/idle dashboard results.
+- [x] Verify owner activation and the live idle dashboard across four repositories.
+- [ ] Verify a complete live automatic busy-to-idle transition.
 - [x] Confirm waiting/requested/pending block idle alongside queued/running.
 - [ ] Resolve any coverage fallback outside the configured accounts.
 
@@ -55,7 +56,8 @@
 - [x] Implement scheduled reconciliation, bounded requests, leased scans and backoff.
 - [x] Deploy the one-minute schedule with checks disabled by default.
 - [x] Verify real signed delivery and its persisted terminal run/attempt.
-- [ ] Activate automatic checks with the owner.
+- [x] Activate automatic checks with the owner.
+- [x] Fix repeated unknown/idle transitions during continuously successful empty scans.
 - [x] Persist scan state atomically, stabilize two complete empty scans and reject stale revisions.
 - [x] Implement one atomic outbox entry per idle epoch; production creation remains disabled.
 - [x] Add signed activity ingestion and invalidate in-flight scans on fresh activity.
