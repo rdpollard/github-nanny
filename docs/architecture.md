@@ -21,8 +21,8 @@ dashboard showing confirmed idle across the four public repositories. A real
 signed completed-workflow event and its persisted terminal run/attempt are
 verified. Owner-only encrypted device registration and explicit test pushes are
 deployed with server keys installed and Windows/Android Vivaldi receipt verified.
-Automatic idle dispatch and retries are implemented in the next source milestone,
-pending CI, deployment and explicit owner activation. See
+Automatic idle dispatch and retries are deployed with alerts off, pending
+explicit owner activation and real end-to-end receipt verification. See
 [idle-alerts.md](idle-alerts.md) and [reconciliation.md](reconciliation.md) for
 the runtime contracts.
 

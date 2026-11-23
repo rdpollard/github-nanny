@@ -75,7 +75,8 @@
 - [x] Implement standards-based Web Push and stable per-epoch notification tags.
 - [x] Implement bounded per-device idle retries and expiry/renewal fencing.
 - [x] Implement canonical run-attempt links for completed activity, regardless of conclusion.
-- [ ] Deploy and activate automatic idle alerts, then verify real end-to-end receipt.
+- [x] Deploy automatic idle alerts with registrations preserved and activation off.
+- [ ] Activate idle alerts and verify real end-to-end receipt/run-link navigation.
 - [ ] Add final PNG/maskable/apple icons and verify install behavior.
 - [ ] Verify background push on the actual phone and Windows/Linux browsers.
 - [ ] iOS: Home Screen install, iOS 16.4+, explicit notification permission.

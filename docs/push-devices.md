@@ -21,9 +21,8 @@ quietly. Android's foreground banner presentation is controlled by browser/OS
 notification categories. Website permission settings are documented at:
 https://vivaldi.com/blog/tips/android-tips/tip-548/
 
-Automatic delivery is implemented in the next source milestone; see
-[idle-alerts.md](idle-alerts.md). It requires explicit owner activation after
-CI/deployment. The shipped device-test milestone keeps automatic alerts off.
+Automatic delivery is deployed and requires explicit owner activation; see
+[idle-alerts.md](idle-alerts.md). Alerts remain off until that action.
 
 ## Server setup after main CI
 

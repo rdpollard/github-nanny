@@ -12,8 +12,8 @@ dashboard showing confirmed idle across four repositories, and hosted checks
 cover all four without errors. Real signed workflow delivery is also verified.
 Encrypted owner-only device registration and a test-notification button are
 deployed with server keys configured. Windows and Android Vivaldi receipt is
-verified. Automatic idle alerts and per-device retries are implemented in the
-next source milestone and await CI, deployment and owner activation.
+verified. Automatic idle alerts and per-device retries are deployed with alerts
+off, pending owner activation and real end-to-end receipt verification.
 
 - Responsive React dashboard, filters, compact mode and light/dark themes,
   adapted from GitHub Workflow Dashboard; explicit sample preview at `/?demo=1`.
