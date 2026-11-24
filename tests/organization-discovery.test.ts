@@ -4,7 +4,7 @@ import { authConfig, type Bindings } from '../worker/auth/config.ts';
 import { checkRepositoryAccess, DiscoveryError } from '../worker/github/discovery.ts';
 import { repositoryScopes } from '../worker/github/scopes.ts';
 import type { Fetcher } from '../worker/auth/github.ts';
-import { rsaFixture } from './helpers/keys.ts';
+import { rsaFixture, verifyAppJwt } from './helpers/keys.ts';
 
 const keys = await rsaFixture();
 const now = Date.UTC(2026, 10, 19, 12);
@@ -131,4 +131,35 @@ test('one request budget applies across accounts, with no partial inventory acce
   assert.equal(report.accounts[1].inventory, null);
   assert.equal(report.accounts[1].reason, 'incomplete');
   assert.equal(report.repositoryCount, 2000);
+});
+
+
+test('one native App signature serves both accounts, while new scans and key rotation reauthenticate', async t => {
+  const signing = t.mock.method(crypto.subtle, 'sign');
+  const rotated = await rsaFixture();
+  for (const [generation, key] of [keys, rotated].entries()) {
+    const time = now + generation * 1000;
+    const upstream = provider();
+    const appTokens: string[] = [];
+    const fetcher: Fetcher = async (input, init) => {
+      const path = new URL(String(input)).pathname;
+      if (path !== '/installation/repositories') {
+        const jwt = new Headers(init?.headers).get('Authorization')!.slice(7);
+        await verifyAppJwt(jwt, key.publicKey, config.clientId, time);
+        appTokens.push(jwt);
+      }
+      return upstream.fetcher(input, init);
+    };
+    const report = await checkRepositoryAccess({ ...env, GITHUB_APP_PRIVATE_KEY: key.pkcs1 }, config, 'rdpollard', { now: time, fetcher });
+    assert.equal(report.complete, true);
+    assert.equal(upstream.calls.length, 6);
+    assert.equal(appTokens.length, 4);
+    assert.equal(new Set(appTokens).size, 1);
+    assert.equal(signing.mock.callCount(), generation + 1);
+  }
+  // Even a previously successful scan cannot hide replacement with a bad key.
+  const upstream = provider();
+  await assert.rejects(checkRepositoryAccess({ ...env, GITHUB_APP_PRIVATE_KEY: 'invalid' }, config, 'rdpollard', { now, fetcher: upstream.fetcher }),
+    error => error instanceof DiscoveryError && error.reason === 'setup');
+  assert.equal(upstream.calls.length, 0);
 });

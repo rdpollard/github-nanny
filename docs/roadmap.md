@@ -98,7 +98,8 @@
 - [x] Enable deployment and verify the first GitHub production release.
 - [x] Measure hosted D1 storage/24-hour rows and compare with current pricing.
 - [x] Record owner Worker CPU percentiles, zero observed errors and account Free request/event usage.
-- [ ] Profile current-version scheduled CPU against the documented Free limit; historical aggregate percentiles exceed it.
+- [x] Profile local workerd quiet scans and remove demonstrated redundant cryptography with security regressions.
+- [ ] Verify deployed-version scheduled CPU against the Free limit; local call reductions are not an edge CPU guarantee.
 - [ ] Confirm representative steady-state usage after normal operation.
 - [ ] Optional Codex chat links only after a reliable association is available.
 

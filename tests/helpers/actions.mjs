@@ -32,7 +32,7 @@ export function activeRun(repo, status, i = 0) {
     actor: { email: 'hidden-email@example.test' }, head_repository: { name: 'hidden-fork-metadata', private: true } };
 }
 
-export async function actionsFixture(overrides = {}) {
+export async function actionsFixture(overrides = {}, runtime = {}) {
   const calls = [];
   const metadataCalls = new Map();
   const control = {
@@ -42,6 +42,7 @@ export async function actionsFixture(overrides = {}) {
   };
   const worker = await runtimeWorker({
     modules: true, scriptPath: 'dist/github_nanny/index.js', compatibilityDate: '2026-11-19',
+    inspectorPort: runtime.inspectorPort, inspectorHost: runtime.inspectorPort === undefined ? undefined : '127.0.0.1',
     bindings: { ...bindings, GITHUB_APP_PRIVATE_KEY: keys.pkcs1, ...overrides },
     outboundService: async request => {
       const url = new URL(request.url);

@@ -25,6 +25,19 @@ export async function deliverIdle(env: Bindings, owner: AuthConfig, report: Acti
   const checkedAt = Date.parse(report.checkedAt);
   const current = await db.prepare('SELECT notice_enabled FROM monitor_state WHERE singleton = 1').first<{ notice_enabled: number }>();
   if (current?.notice_enabled !== 1) return;
+  // Quiet scans have no delivery work. Expire bounded stale outbox rows and
+  // check for a due candidate before importing/validating/deriving push keys.
+  // This is only a work hint; all scope/device/config/lease guards below still
+  // authorize actual delivery immediately before a send.
+  const now = Date.now();
+  await db.prepare('DELETE FROM idle_outbox WHERE epoch IN (SELECT epoch FROM idle_outbox WHERE created_at < ? LIMIT 50)')
+    .bind(now - NOTICE_LIFETIME_MS).run();
+  const pending = await db.prepare(`SELECT 1 AS pending FROM idle_deliveries d JOIN idle_outbox o ON o.epoch = d.epoch
+    WHERE d.status IN ('queued','sending') AND d.attempts < ? AND d.next_attempt_at <= ?
+      AND (d.last_scan_at IS NULL OR d.last_scan_at < ?) AND (d.lease_key IS NULL OR d.lease_expires_at <= ?)
+      AND o.created_at >= ? AND o.scope_revision = ? LIMIT 1`)
+    .bind(MAX_ATTEMPTS, now, checkedAt, now, now - NOTICE_LIFETIME_MS, report.scopeRevision).first();
+  if (!pending) return;
   const config = await pushConfig(env);
   if (!config) return;
   const devices = new DeviceStore(env.DB, config, owner.ownerId);
@@ -41,8 +54,6 @@ export async function deliverIdle(env: Bindings, owner: AuthConfig, report: Acti
 
   // Bound both retention work and external requests. Expiry does not rearm an
   // epoch; a newly registered device cannot inherit an old recipient snapshot.
-  await db.prepare('DELETE FROM idle_outbox WHERE epoch IN (SELECT epoch FROM idle_outbox WHERE created_at < ? LIMIT 50)')
-    .bind(Date.now() - NOTICE_LIFETIME_MS).run();
   for (let i = 0; i < BATCH_SIZE; i++) {
     const now = Date.now();
     const candidate = await db.prepare(`SELECT d.epoch, d.device_id, o.run_url FROM idle_deliveries d

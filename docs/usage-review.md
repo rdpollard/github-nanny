@@ -70,8 +70,12 @@ some isolate flexibility for occasional overruns. The observed aggregate CPU
 percentiles exceed that documented budget, despite zero observed errors. Do not
 interpret absence of errors as a guaranteed CPU allowance or claim the workload
 is indefinitely safe on Free. Current-version scheduled CPU profiling/measurement
-is the remaining engineering follow-up; optimize demonstrated hot paths before
-considering a paid plan. Any subscription change still requires owner approval.
+remains the hosted follow-up. Local workerd profiling identified repeated
+cryptography in quiet scans; the source optimization reduces counted native
+crypto calls from 13 to 2 per scan, while retaining all 34 GitHub requests.
+See [cpu-profiling.md](cpu-profiling.md) for the experiment and the distinction
+between operation counts and actual edge CPU. Verify the new version after
+deployment before claiming compatibility or considering a paid plan. Any subscription change still requires owner approval.
 
 Requests and D1 writes should also be assessed over ordinary days as the scope
 or number of open dashboards grows. No recurring engineering CI status watcher

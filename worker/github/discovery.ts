@@ -24,15 +24,25 @@ function readPermissions(value: unknown): boolean {
 
 // Every account must be chosen by server configuration and checked by immutable
 // ID. A public App installation elsewhere does not expand the configured scope.
-export async function discoverRepositories(env: Bindings, config: AuthConfig, login: string, options: {
+interface DiscoveryOptions {
   fetcher?: Fetcher; now?: number; account?: GitHubAccountScope; budget?: GitHubBudget;
   onVerified?: (inventory: RepositoryDiscovery, token: string) => void;
-} = {}): Promise<RepositoryDiscovery> {
+}
+export async function discoverRepositories(env: Bindings, config: AuthConfig, login: string,
+  options: DiscoveryOptions = {}): Promise<RepositoryDiscovery> {
+  const now = options.now ?? Date.now();
+  return discoverWithJwt(env, config, login, { ...options, now }, () => appJwt(config.clientId, env.GITHUB_APP_PRIVATE_KEY ?? '', now));
+}
+
+// Only this module can supply the lazy App identity. A complete access check
+// shares it across accounts; installation tokens still remain account-specific.
+async function discoverWithJwt(env: Bindings, config: AuthConfig, login: string,
+  options: DiscoveryOptions, appToken: () => Promise<string>): Promise<RepositoryDiscovery> {
   const fetcher = options.fetcher ?? fetch;
   const now = options.now ?? Date.now();
   const account = options.account ?? { id: config.ownerId, login, kind: 'User' };
   let jwt: string;
-  try { jwt = await appJwt(config.clientId, env.GITHUB_APP_PRIVATE_KEY ?? '', now); }
+  try { jwt = await appToken(); }
   catch { throw new DiscoveryError('setup'); }
 
   const budget = options.budget ?? { remaining: 22 };
@@ -111,9 +121,13 @@ export async function checkRepositoryAccess(env: Bindings, config: AuthConfig, l
   const budget = options.budget ?? { remaining: 40 };
   const accounts: RepositoryAccountCheck[] = [];
   const repositoryIds = new Set<number>();
+  // Request-local only: no process/global key or bearer-token cache survives a
+  // scan, owner change or key rotation. Authentication failures retain behavior.
+  let jwt: Promise<string> | undefined;
+  const appToken = () => jwt ??= appJwt(config.clientId, env.GITHUB_APP_PRIVATE_KEY ?? '', options.now!);
   for (const account of scopes) {
     try {
-      const inventory = await discoverRepositories(env, config, account.login, { ...options, account, budget });
+      const inventory = await discoverWithJwt(env, config, account.login, { ...options, account, budget }, appToken);
       if (inventory.repositories.some(repository => repositoryIds.has(repository.id))) throw new DiscoveryError('incomplete');
       for (const repository of inventory.repositories) repositoryIds.add(repository.id);
       // Names come from the server's explicit requirements, never from a caller

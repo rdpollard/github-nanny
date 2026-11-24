@@ -214,3 +214,22 @@ test('permanent rejection is not retried and a gone subscription is removed with
     assert.deepEqual(await f.jobs(), []);
   } finally { await f.worker.dispose(); }
 });
+
+
+test('quiet scans expire stale delivery work without importing push keys or sending notifications', async t => {
+  const f = await fixture();
+  try {
+    await f.alerts('POST');
+    const report = await f.pending();
+    assert.equal((await f.jobs()).length, 2);
+    await f.db.prepare('UPDATE idle_outbox SET created_at = ?').bind(Date.now() - 360_000).run();
+    const imports = t.mock.method(crypto.subtle, 'importKey');
+    await f.direct(report);
+    assert.equal(imports.mock.callCount(), 0);
+    assert.equal((await f.db.prepare('SELECT COUNT(*) AS n FROM idle_outbox').first()).n, 0);
+    assert.deepEqual(await f.jobs(), []);
+    assert.equal(f.sent.length, 0);
+    const state = await f.db.prepare('SELECT phase, notice_enabled FROM monitor_state').first();
+    assert.equal(state.phase, 'idle'); assert.equal(state.notice_enabled, 1);
+  } finally { await f.worker.dispose(); }
+});
