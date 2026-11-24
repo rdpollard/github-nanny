@@ -76,9 +76,10 @@ read-only repository permissions and serialized production deployment. Its job
 checks credentials, runs `npm ci`, `npm run check`, browser smoke and a dry run,
 applies hosted D1 migrations, uploads Worker/assets and checks public health.
 Manual dispatch is restricted to main. It does not deploy PR code. The repository variable
-`CLOUDFLARE_DEPLOY_ENABLED` remains disabled.
+`CLOUDFLARE_DEPLOY_ENABLED` is owner-enabled; the first manual main deployment
+passed in run `45475925420`.
 
-Before enabling automatic deployment, the owner must install a separate durable
+For a new installation or credential replacement, install a separate durable
 Cloudflare CI token and account ID in the repository's Actions secrets:
 
 - `CLOUDFLARE_API_TOKEN`: permission to deploy the existing Worker and execute
@@ -102,8 +103,8 @@ See [production-cicd.md](production-cicd.md) for exact credential/activation ste
 - Verify automatic idle run-link navigation on the newly enrolled Edge/Chrome
   devices. Test taps open Nanny; automatic receipt is already verified on Vivaldi.
 - Background/lock-screen behavior and a Linux browser's real push receipt.
-- Install/icon polish: final PNG, maskable and Apple icon assets. Existing
-  Vivaldi Windows/Android browser and installed-PWA operation is already verified.
-- Measured Cloudflare Worker CPU/D1 use and GitHub installation-rate headroom.
-  No paid plan is enabled. Use the actual account usage before choosing upgrades.
+- Verify deployed launcher icons and actual installation after the PNG/maskable/Apple
+  icon update; see [pwa-installation.md](pwa-installation.md) for Linux/device steps.
+- Worker CPU/account usage and GitHub installation-rate headroom.
+  D1 usage is measured in [usage-review.md](usage-review.md); no paid plan is enabled.
 - Optional iOS Home Screen testing and optional Codex chat links, when relevant.

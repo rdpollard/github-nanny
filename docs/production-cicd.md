@@ -1,10 +1,10 @@
 # Production GitHub deployment
 
-## Prepared behavior
+## Current production behavior
 
 The Deploy workflow is enabled only by repository variable
-`CLOUDFLARE_DEPLOY_ENABLED=true` and only on `refs/heads/main`. The gate is still
-off during preparation. Main pushes and manual dispatch on main use the same
+`CLOUDFLARE_DEPLOY_ENABLED=true` and only on `refs/heads/main`. The owner enabled the gate and verified manual main deployment
+in run `45475925420`; see [deployment.md](deployment.md). Main pushes and manual dispatch on main use the same
 job: credential presence check, locked dependency install, full unit/runtime
 checks and production build, browser smoke, deployment dry run, remote D1
 migrations, Worker/assets upload, then a bounded public health check.
@@ -18,7 +18,7 @@ before a failed upload are not automatically reverted; keep migrations compatibl
 with the preceding Worker. Health success confirms the service responds, not
 that every owner/device acceptance check passed.
 
-## Owner credential setup after this workflow merges
+## Credential setup for a new installation or replacement token
 
 1. Open [Cloudflare Account API tokens](https://dash.cloudflare.com/?to=/:account/api-tokens)
    for account `30d2f3da9cdc70736e8a39392f4dc43c` and create a separate CI token,

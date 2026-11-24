@@ -33,6 +33,41 @@ const path = require('node:path');
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(`${origin}/?demo=1`);
     await page.getByRole('heading', { name: 'GitHub is busy' }).waitFor();
+    // Validate the manifest as Chromium sees it and decode the served assets.
+    const protocol = await context.newCDPSession(page);
+    const parsedManifest = await protocol.send('Page.getAppManifest');
+    assert.equal(parsedManifest.errors.filter(error => error.critical).length, 0);
+    const manifest = JSON.parse(parsedManifest.data);
+    assert.equal(manifest.id, '/'); assert.equal(manifest.start_url, '/');
+    assert.equal(manifest.display, 'standalone');
+    const expectedIcons = [['/icons/icon-192.png', 192, 'any'], ['/icons/icon-512.png', 512, 'any'], ['/icons/maskable-512.png', 512, 'maskable']];
+    for (const [src, size, purpose] of expectedIcons) {
+      assert.ok(manifest.icons.some(icon => icon.src === src && icon.sizes === `${size}x${size}` && icon.purpose === purpose));
+      const pixels = await page.evaluate(async ({ src, size, purpose }) => {
+        const image = new Image(); image.src = src; await image.decode();
+        const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d'); ctx.drawImage(image, 0, 0);
+        const data = ctx.getImageData(0, 0, size, size).data;
+        let transparent = 0, outside = 0, mark = 0;
+        if (purpose === 'maskable') for (let i = 0; i < data.length; i += 4) {
+          if (data[i + 3] !== 255) transparent++;
+          if (data[i + 1] > 80 && data[i + 2] > 100) {
+            mark++;
+            const x = (i / 4) % size + 0.5, y = Math.floor(i / 4 / size) + 0.5;
+            if (Math.hypot(x - size / 2, y - size / 2) > size * 0.4) outside++;
+          }
+        }
+        return { width: image.naturalWidth, height: image.naturalHeight, transparent, outside, mark };
+      }, { src, size, purpose });
+      assert.equal(pixels.width, size); assert.equal(pixels.height, size);
+      if (purpose === 'maskable') { assert.equal(pixels.transparent, 0); assert.equal(pixels.outside, 0); assert.ok(pixels.mark > 0); }
+    }
+    const appleIcon = page.locator('link[rel="apple-touch-icon"]');
+    assert.equal(await appleIcon.getAttribute('sizes'), '180x180');
+    const appleSize = await page.evaluate(async src => { const image = new Image(); image.src = src; await image.decode(); return [image.naturalWidth, image.naturalHeight]; }, await appleIcon.getAttribute('href'));
+    assert.deepEqual(appleSize, [180, 180]);
+    await protocol.detach();
+
     assert.equal(await page.getByRole('listitem').count(), 3);
     await page.getByRole('button', { name: 'Running', exact: false }).click();
     assert.equal(await page.getByRole('listitem').count(), 2);
@@ -333,7 +368,7 @@ const path = require('node:path');
     await page.goto(`${origin}/offline-navigation`);
     await page.getByRole('heading', { name: 'You’re offline' }).waitFor();
     assert.deepEqual(errors, []);
-    console.log('Browser smoke passed: filters, theme, compact/mobile layout, owner setup, unknown status, service worker and offline fallback.');
+    console.log('Browser smoke passed: manifest/icons, filters, theme, compact/mobile layout, owner setup, unknown status, service worker and offline fallback.');
   } finally {
     if (browser) await browser.close();
     server.kill('SIGTERM');

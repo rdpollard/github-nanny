@@ -34,8 +34,8 @@ accepted these results and closed further Vivaldi-specific work; see
   Unknown/stale/failed checks hide run details and cannot claim idle.
 - Web manifest, service worker and offline fallback; actual device installation
   and background push verification remain on the roadmap.
-- GitHub Actions CI with user-coordinated engineering handoffs. Automatic
-  deployment remains disabled until separately configured.
+- GitHub Actions CI with user-coordinated engineering handoffs. Production
+  deployment is owner-enabled and verified from GitHub Actions.
 
 See [automatic checks](docs/reconciliation.md) for activation and limits.
 Monitoring and alerts are now owner-enabled in production. A first quiet
@@ -79,6 +79,8 @@ layout, unknown live status, service worker registration, and offline navigation
 - [Architecture and idle detection](docs/architecture.md)
 - [Milestones](docs/roadmap.md)
 - [Release verification and operations](docs/release-checklist.md)
+- [PWA installation and Linux acceptance](docs/pwa-installation.md)
+- [Measured hosting usage](docs/usage-review.md)
 - [Cloudflare and GitHub setup](docs/setup.md)
 - [Production CI/CD activation](docs/production-cicd.md)
 - [GitHub owner connection setup](docs/github-connection.md)
@@ -93,9 +95,9 @@ layout, unknown live status, service worker registration, and offline navigation
 
 Cloudflare Workers hosts the app at
 https://github-nanny.github-nanny.workers.dev/. See [deployment status](docs/deployment.md)
-for availability checks and remaining integration work. Deployment is disabled
-in GitHub Actions until you configure the credentials and enable it; see
-[setup](docs/setup.md). Normal releases then deploy from `main` after checks pass.
+for availability checks and remaining integration work. GitHub Actions deployment is enabled and its first manual main release is
+verified; see [production CI/CD](docs/production-cicd.md). Main pushes now deploy
+through the same complete release checks.
 
 ## License
 

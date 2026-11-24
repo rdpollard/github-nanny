@@ -81,19 +81,22 @@
 - [x] Implement app-first notification clicks and a validated GitHub run link.
 - [x] Verify test click-through on Edge/Windows and Chrome/Android; owner accepts results and closes Vivaldi-specific work.
 - [x] Add immediate tap navigation and local handler/outcome diagnostics for retesting.
-- [ ] Add final PNG/maskable/apple icons and verify install behavior.
+- [x] Add PNG/maskable/Apple icons and verify manifest, served dimensions and mask safety in Chromium.
+- [ ] Verify refreshed launcher icons and actual install behavior on owner devices.
 - [ ] Verify background push on the actual phone and Windows/Linux browsers.
 - [ ] iOS: Home Screen install, iOS 16.4+, explicit notification permission.
 
 ## 5. Launch
 
 - [x] Prepare main-only gated deployment with full checks, browser smoke, credential preflight and public health verification.
-- [ ] Owner installs scoped CI credentials, enables gate and verifies first GitHub deployment.
+- [x] Owner installs scoped CI credentials, enables gate and verifies first GitHub deployment.
 
 - [x] Configure Cloudflare, production GitHub App and production secrets.
 - [ ] Exercise setup/disconnect and live busy-to-idle notifications end to end.
 - [ ] Verify the monitor's own CI/CD runs do not create notification loops.
-- [ ] Measure expected use/cost, enable deployment and monitor first releases.
+- [x] Enable deployment and verify the first GitHub production release.
+- [x] Measure hosted D1 storage/24-hour rows and compare with current pricing.
+- [ ] Verify Worker CPU/request/account usage and representative steady-state cost.
 - [ ] Optional Codex chat links only after a reliable association is available.
 
 The foundation alone is not an acceptance test for the complete product.
