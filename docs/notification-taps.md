@@ -37,6 +37,10 @@ An older Vivaldi forum thread reports similar symptoms, with a fix being tested
 in February 2023. It does not establish a defect in the current installed versions:
 https://forum.vivaldi.net/topic/78313/click-of-notifications-not-opening-vivaldi-s/23
 
+The owner accepted Edge/Windows and Chrome/Android results and closed further
+Vivaldi-specific engineering. Browser privacy/security adjustments are owner-managed;
+no particular setting or browser defect has been established as the cause.
+
 ## Handler behavior and investigation procedure
 
 The handler now calls same-origin openWindow directly during the notification
