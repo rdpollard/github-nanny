@@ -3,7 +3,8 @@
 Automatic idle delivery is verified on Windows 11 and Android 17 Vivaldi.
 Both devices still opened nothing after the first app-first click fix was
 deployed. The cause is not yet confirmed. The second candidate fix and local
-diagnostics are in source, pending CI, deployment and actual-device retesting.
+diagnostics (tap-v2) are deployed after successful main CI. Actual-device
+retesting remains pending.
 
 The handler now calls same-origin openWindow directly during the notification
 tap, before any awaited enumeration/storage/navigation. It avoids an additional
