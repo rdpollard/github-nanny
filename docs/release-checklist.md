@@ -9,7 +9,9 @@ verified on Windows 11 and Android; Android foreground banner behavior differs
 from its notification-shade receipt. The owner verified automatic idle receipt
 on both devices after PR #17 CI. Tapping opened nothing on either device; the
 click fix in source opens Nanny first and presents a GitHub run link. Deployment
-and actual device click-through verification are pending.
+and actual device click-through verification are pending. The first app-first
+version was deployed and still opened nothing on both platforms; the second
+candidate adds immediate navigation and [local tap diagnostics](notification-taps.md).
 
 The saved scope is:
 

@@ -233,6 +233,15 @@ const path = require('node:path');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     assert.equal(pushSaves, 0); assert.equal(pushTests, 0);
     assert.equal(await page.evaluate(() => window.__nannyPush.requests), 0, 'Loading settings must not ask notification permission');
+    await page.getByRole('button', { name: 'Check notification taps', exact: true }).click();
+    await page.getByRole('status').filter({ hasText: 'Handler tap-v2 is active. No notification tap is recorded' }).waitFor();
+    await page.evaluate(async () => {
+      const cache = await caches.open('github-nanny-click-diagnostic-v1');
+      await cache.put('/__local_notification_click', new Response(JSON.stringify({ version: 'tap-v2', at: new Date().toISOString(), outcome: 'blocked', error: 'InvalidAccessError' })));
+    });
+    await page.getByRole('button', { name: 'Check notification taps', exact: true }).click();
+    await page.getByRole('status').filter({ hasText: 'Browser blocked opening Nanny. (InvalidAccessError)' }).waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.getByLabel('Device name').fill('Linux browser');
     await page.getByRole('button', { name: 'Register this browser', exact: true }).click();
     await page.getByRole('status').filter({ hasText: 'Browser registered.' }).waitFor();

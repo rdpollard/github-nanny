@@ -79,7 +79,8 @@
 - [x] Verify owner idle-alert activation in hosted storage.
 - [x] Verify real automatic idle receipt on both owner devices.
 - [x] Implement app-first notification clicks and a validated GitHub run link.
-- [ ] Deploy and verify notification click-through on both owner devices.
+- [ ] Resolve notification click-through on both devices; first app-first fix failed.
+- [x] Add immediate tap navigation and local handler/outcome diagnostics for retesting.
 - [ ] Add final PNG/maskable/apple icons and verify install behavior.
 - [ ] Verify background push on the actual phone and Windows/Linux browsers.
 - [ ] iOS: Home Screen install, iOS 16.4+, explicit notification permission.
