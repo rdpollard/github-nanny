@@ -1,5 +1,5 @@
-// Cache only the offline document. Status/API responses and authenticated
-// requests must never be replayed as live data by a service worker.
+// Cache the offline document and one local notification diagnostic only.
+// Status/API/authenticated responses are never cached or replayed as live data.
 const OFFLINE_CACHE = 'github-nanny-offline-v2';
 // Workers static assets redirects /offline.html to /offline. Cache the
 // canonical URL so a redirected Response is never replayed for a navigation.
@@ -31,25 +31,61 @@ self.addEventListener('push', event => {
     renotify: test, icon: '/icon.svg', data: runUrl ? { runUrl } : { path: '/' },
   }));
 });
+const CLICK_VERSION = 'tap-v2';
+const CLICK_CACHE = 'github-nanny-click-diagnostic-v1';
+const CLICK_KEY = new URL('/__local_notification_click', self.location.origin).href;
+let lastClick = null;
+function rememberClick(value) {
+  lastClick = value;
+  return caches.open(CLICK_CACHE).then(cache => cache.put(CLICK_KEY,
+    new Response(JSON.stringify(value), { headers: { 'Content-Type': 'application/json' } }))).catch(() => {});
+}
+function clickError(error) {
+  return ['InvalidAccessError', 'NotAllowedError', 'TypeError', 'SecurityError'].includes(error?.name) ? error.name : 'OtherError';
+}
+self.addEventListener('message', event => {
+  if (event.data?.kind !== 'notification-click-diagnostic' || !event.ports?.[0]) return;
+  event.waitUntil((async () => {
+    let saved = lastClick;
+    if (!saved) try { saved = await (await caches.open(CLICK_CACHE)).match(CLICK_KEY).then(response => response?.json()); } catch { /* Local storage can be blocked. */ }
+    event.ports[0].postMessage({ version: CLICK_VERSION, lastClick: saved ?? null });
+  })());
+});
 self.addEventListener('notificationclick', event => {
-  event.notification.close();
-  // Keep the notification's first navigation inside the installed app's scope.
-  // The dashboard offers an ordinary GitHub link instead of asking the browser
-  // to launch another origin directly from a background service worker.
   const target = new URL('/', self.location.origin);
   const runUrl = safeRunUrl(event.notification.data?.runUrl);
   if (runUrl) target.hash = new URLSearchParams({ 'idle-run': runUrl }).toString();
+  event.notification.close();
+  // Invoke the browser navigation in the original tap task, before storage,
+  // client enumeration or navigation can consume/lose transient activation.
+  let opening;
+  try { opening = self.clients.openWindow(target.href); }
+  catch (error) { opening = Promise.reject(error); }
+  const record = { version: CLICK_VERSION, at: new Date().toISOString(), outcome: 'received', error: null };
+  const received = rememberClick({ ...record });
   event.waitUntil((async () => {
-    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    for (const client of windows) if (new URL(client.url).origin === self.location.origin) {
+    try {
+      const opened = await opening;
+      record.outcome = opened ? 'opened' : 'no-window';
+    } catch (error) {
+      record.outcome = 'blocked'; record.error = clickError(error);
+      // A surviving app window can still be usable. Focus before navigating:
+      // navigation can replace the document that held user activation.
       try {
-        const navigated = await client.navigate(target.href);
-        if (navigated) return await navigated.focus();
-      }
-      catch { /* A closing window can disappear between matchAll and focus. */ }
+        const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        for (const client of windows) if (new URL(client.url).origin === self.location.origin) {
+          try {
+            await client.focus();
+            record.outcome = 'focused';
+            const navigated = await client.navigate(target.href);
+            record.outcome = navigated ? 'navigated' : 'focused';
+            break;
+          } catch (fallbackError) { record.error = clickError(fallbackError); }
+        }
+      } catch (fallbackError) { record.error = clickError(fallbackError); }
     }
-    const opened = await self.clients.openWindow(target.href);
-    if (opened) return opened.focus();
+    await received;
+    await rememberClick({ ...record });
   })());
 });
 self.addEventListener('activate', event => {

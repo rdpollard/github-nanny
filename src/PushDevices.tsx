@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { NotificationDiagnostics } from './NotificationDiagnostics';
 import type { AlertSettings, PushSettings } from '../shared/contracts';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
@@ -109,6 +110,7 @@ export function PushDevices({ refreshKey = 0 }: { refreshKey?: number }) {
           </div>
         </li>)}
       </ul>}
+      {supported && <NotificationDiagnostics registration={registration} />}
       <section aria-label="Idle alert controls" className="space-y-3 border-t pt-4">
         <h2 className="font-semibold">Automatic idle alerts</h2>
         {alerts && <>

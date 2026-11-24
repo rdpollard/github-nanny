@@ -1,5 +1,25 @@
 # Deployment status
 
+## Notification click correction deployment
+
+Main CI run `45294554162` passed for merge commit
+`00ac0a5ed38294b2cf663fa1803c6df6c635f9e4`. No migrations were pending.
+The rebuilt Worker/assets were deployed manually as Cloudflare version
+`72eb9081-edc9-452f-a760-6e0f17c2ca3d`; the minute schedule remains active and
+GitHub automatic deployment remains disabled.
+
+Hosted HTTPS checks verified health/status 200, the app-first notification click
+handler and dashboard run-link bundle, and unsigned push/alert administration
+401. Read-only hosted D1 confirmed checks and alerts enabled, both registrations
+preserved, the activation binding present and no backend errors/failures. Public
+status reported four monitored repositories and alerts enabled. Existing busy
+activity was preserved; deployment did not reset the monitoring state.
+
+The owner must reload Nanny on both devices to receive the updated service
+worker, then verify tapping opens Nanny and **View run on GitHub** opens the
+attempt. Test-notification taps can first verify app opening without creating
+GitHub activity. Actual Vivaldi click-through remains unverified after this fix.
+
 ## Automatic checks deployment
 
 Main CI run `45129728193` passed for merge commit

@@ -15,7 +15,8 @@ deployed with server keys configured. Windows and Android Vivaldi receipt is
 verified. Automatic idle alerts and per-device retries are deployed and
 owner-enabled. Automatic idle receipt is verified on both devices. A notification
 click fix now opens Nanny first with a GitHub run link; deployment and device
-retesting of that fix remain pending.
+retesting remain pending. The first app-first fix still opened nothing on both
+devices; see [tap diagnostics](docs/notification-taps.md) for the next investigation.
 
 - Responsive React dashboard, filters, compact mode and light/dark themes,
   adapted from GitHub Workflow Dashboard; explicit sample preview at `/?demo=1`.
