@@ -7,11 +7,11 @@ Monitoring and idle alerts are owner-enabled for the four saved public
 repositories. Two registered Vivaldi devices are preserved. Test receipt is
 verified on Windows 11 and Android; Android foreground banner behavior differs
 from its notification-shade receipt. The owner verified automatic idle receipt
-on both devices after PR #17 CI. Tapping opened nothing on either device; the
-click fix in source opens Nanny first and presents a GitHub run link. Deployment
-and actual device click-through verification are pending. The first app-first
-version was deployed and still opened nothing on both platforms; the second
-candidate adds immediate navigation and [local tap diagnostics](notification-taps.md).
+on both devices after PR #17 CI. The deployed tap-v2 handler is verified to open
+Nanny from test notifications in Edge/Windows and Chrome/Android. The owner
+accepted these platforms and closed further Vivaldi-specific work. Automatic
+idle run-link navigation on the new Edge/Chrome registrations remains separate
+from verified test tap-to-open; see [notification-taps.md](notification-taps.md).
 
 The saved scope is:
 
@@ -73,8 +73,9 @@ Worker secrets or raw provider payloads when troubleshooting.
 
 The checked-in Deploy workflow runs on main pushes or manual dispatch, with
 read-only repository permissions and serialized production deployment. Its job
-runs `npm ci` and `npm run check`, applies hosted D1 migrations, then uploads the
-built Worker/assets. It does not deploy PR code. The repository variable
+checks credentials, runs `npm ci`, `npm run check`, browser smoke and a dry run,
+applies hosted D1 migrations, uploads Worker/assets and checks public health.
+Manual dispatch is restricted to main. It does not deploy PR code. The repository variable
 `CLOUDFLARE_DEPLOY_ENABLED` remains disabled.
 
 Before enabling automatic deployment, the owner must install a separate durable
@@ -92,13 +93,14 @@ Enable `CLOUDFLARE_DEPLOY_ENABLED=true` only when automatic releases are intende
 then use a normal main release or the Deploy workflow's manual dispatch. This
 checklist does not enable the gate or create/rotate any credential.
 
-See [setup.md](setup.md) for commands and
+See [production-cicd.md](production-cicd.md) for exact credential/activation steps,
+[setup.md](setup.md) for commands and
 [deployment.md](deployment.md) for exact deployed source/version records.
 
 ## Remaining launch checks
 
-- Retest Nanny opening and run-link navigation on both enrolled devices after
-  the notification click fix is deployed. Automatic alert receipt is verified.
+- Verify automatic idle run-link navigation on the newly enrolled Edge/Chrome
+  devices. Test taps open Nanny; automatic receipt is already verified on Vivaldi.
 - Background/lock-screen behavior and a Linux browser's real push receipt.
 - Install/icon polish: final PNG, maskable and Apple icon assets. Existing
   Vivaldi Windows/Android browser and installed-PWA operation is already verified.

@@ -79,13 +79,16 @@
 - [x] Verify owner idle-alert activation in hosted storage.
 - [x] Verify real automatic idle receipt on both owner devices.
 - [x] Implement app-first notification clicks and a validated GitHub run link.
-- [ ] Resolve notification click-through on both devices; first app-first fix failed.
+- [x] Verify test click-through on Edge/Windows and Chrome/Android; owner accepts results and closes Vivaldi-specific work.
 - [x] Add immediate tap navigation and local handler/outcome diagnostics for retesting.
 - [ ] Add final PNG/maskable/apple icons and verify install behavior.
 - [ ] Verify background push on the actual phone and Windows/Linux browsers.
 - [ ] iOS: Home Screen install, iOS 16.4+, explicit notification permission.
 
 ## 5. Launch
+
+- [x] Prepare main-only gated deployment with full checks, browser smoke, credential preflight and public health verification.
+- [ ] Owner installs scoped CI credentials, enables gate and verifies first GitHub deployment.
 
 - [x] Configure Cloudflare, production GitHub App and production secrets.
 - [ ] Exercise setup/disconnect and live busy-to-idle notifications end to end.

@@ -1,5 +1,22 @@
 # Deployment status
 
+## Tap-v2 diagnostics deployment
+
+Main CI run `45461676255` passed for merge commit
+`7e335ee57822edd9e48dce25eea03ba11bd22438`. No migrations were pending.
+The rebuilt Worker/assets were deployed manually as Cloudflare version
+`caae730c-80b5-4be8-85e4-ccc3e8008d5b`, preserving the minute schedule.
+HTTPS checks verified health/status 200, the tap-v2 service worker, Settings
+with the diagnostic control, and unsigned push/alert administration 401.
+Public status reported four repositories, confirmed idle and alerts enabled.
+Hosted D1 confirmed monitoring/alerts enabled, two devices, the activation binding
+and no errors/failures. Automatic GitHub deployment remains disabled.
+
+Actual Vivaldi taps are still unverified. On each owner device, reload Nanny,
+check Settings reports handler tap-v2, send and tap a fresh test, then inspect
+the latest local result if opening fails. No owner session or tap was fabricated.
+
+
 ## Notification click correction deployment
 
 Main CI run `45294554162` passed for merge commit

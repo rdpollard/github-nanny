@@ -22,7 +22,9 @@ The production Worker `github-nanny`, workers.dev address and WNAM D1 database
 are already created. Migrations 0001–0007 are deployed. Real GitHub owner sign-in,
 saved public scope, signed webhooks and scheduled Actions checks are verified.
 The owner enabled idle alerts and verified automatic receipt on both devices.
-Notification click-through is being corrected and still needs device retesting. No paid plan has been enabled.
+Test click-through is verified in Edge/Windows and Chrome/Android. The owner
+accepted these results and closed further Vivaldi-specific investigation.
+No paid plan has been enabled.
 
 Non-secret identifiers, canonical APP_ORIGIN, owner ID, App slug/client ID and
 configured organization requirements are in `wrangler.jsonc`. The verified scope
@@ -97,7 +99,9 @@ completion message. Do not install status watchers or poll engineering CI.
 
 `deploy.yml` runs on main pushes or manual dispatch. Its serialized deploy job
 is gated on repository variable `CLOUDFLARE_DEPLOY_ENABLED` being exactly `true`.
-It independently runs checks before migrations/upload and does not cancel a
+It independently runs full checks, browser smoke and a dry run before
+migrations/upload, then verifies public health. Manual dispatch is restricted
+to main. It does not cancel a
 production deployment already in progress. The gate is currently disabled.
 
 Automatic deployment needs separate Actions secrets `CLOUDFLARE_API_TOKEN` and
@@ -108,6 +112,9 @@ short-lived credentials must not be copied into CI. The owner must install the
 CI credentials directly in GitHub because the current connector returned 403
 for Actions-secret administration. Enable the repository gate only when those
 credentials are installed and automatic public releases are intended.
+
+See [production-cicd.md](production-cicd.md) for exact token scopes, credential
+entry, activation and first-release steps.
 
 See [release-checklist.md](release-checklist.md) for activation, acceptance,
 recovery and the remaining owner steps. No gate or paid resource is enabled by

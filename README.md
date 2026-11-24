@@ -13,10 +13,10 @@ cover all four without errors. Real signed workflow delivery is also verified.
 Encrypted owner-only device registration and a test-notification button are
 deployed with server keys configured. Windows and Android Vivaldi receipt is
 verified. Automatic idle alerts and per-device retries are deployed and
-owner-enabled. Automatic idle receipt is verified on both devices. A notification
-click fix now opens Nanny first with a GitHub run link; deployment and device
-retesting remain pending. The first app-first fix still opened nothing on both
-devices; see [tap diagnostics](docs/notification-taps.md) for the next investigation.
+owner-enabled. Automatic idle receipt is verified on both devices. Test taps
+visibly open Nanny in Edge on Windows 11 and Chrome on Android 17. The owner
+accepted these results and closed further Vivaldi-specific work; see
+[tap diagnostics](docs/notification-taps.md) for the verification record.
 
 - Responsive React dashboard, filters, compact mode and light/dark themes,
   adapted from GitHub Workflow Dashboard; explicit sample preview at `/?demo=1`.
@@ -80,6 +80,7 @@ layout, unknown live status, service worker registration, and offline navigation
 - [Milestones](docs/roadmap.md)
 - [Release verification and operations](docs/release-checklist.md)
 - [Cloudflare and GitHub setup](docs/setup.md)
+- [Production CI/CD activation](docs/production-cicd.md)
 - [GitHub owner connection setup](docs/github-connection.md)
 - [GitHub webhook receiver and setup](docs/webhooks.md)
 - [Push devices and test notifications](docs/push-devices.md)
