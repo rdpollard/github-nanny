@@ -28,7 +28,7 @@ self.addEventListener('push', event => {
     body: runUrl ? `All monitored public Actions had finished at ${new Date(value.checkedAt).toLocaleTimeString()}.`
       : test ? 'This is a test notification from GitHub Nanny.' : 'Open GitHub Nanny to check current activity.',
     tag: runUrl ? `github-nanny-idle-${value.epoch}` : test ? 'github-nanny-test' : 'github-nanny-update',
-    renotify: test, icon: '/icon.svg', data: runUrl ? { runUrl } : { path: '/' },
+    renotify: test, icon: '/icons/icon-192.png', data: runUrl ? { runUrl } : { path: '/' },
   }));
 });
 const CLICK_VERSION = 'tap-v2';

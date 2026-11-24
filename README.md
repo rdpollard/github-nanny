@@ -79,6 +79,8 @@ layout, unknown live status, service worker registration, and offline navigation
 - [Architecture and idle detection](docs/architecture.md)
 - [Milestones](docs/roadmap.md)
 - [Release verification and operations](docs/release-checklist.md)
+- [PWA installation and Linux acceptance](docs/pwa-installation.md)
+- [Measured hosting usage](docs/usage-review.md)
 - [Cloudflare and GitHub setup](docs/setup.md)
 - [Production CI/CD activation](docs/production-cicd.md)
 - [GitHub owner connection setup](docs/github-connection.md)
