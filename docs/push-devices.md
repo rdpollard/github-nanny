@@ -13,8 +13,11 @@ installed PWA, including tests initiated from Android settings. Android 17 with
 Vivaldi 8.3.4192.96 also receives the notification in its notification shade.
 The owner clarified that the missing behavior was a banner while the app was
 open, rather than failed push receipt. Both devices' provider acceptance was
-independently verified in hosted D1. Background/locked-phone behavior and Linux
-receipt remain final acceptance checks.
+independently verified in hosted D1. Background/locked-phone behavior remains a separate acceptance check.
+
+The owner subsequently verified Linux Mint with Firefox (reported latest releases):
+registration, test delivery and clicking the notification to visibly open Nanny
+all pass. This closes the Linux test receipt/tap acceptance for that setup.
 
 Repeated test notifications share a tag and can update an existing notification
 quietly. Android's foreground banner presentation is controlled by browser/OS

@@ -59,8 +59,9 @@ Define and display any needed polling coverage for collaborator repositories.
 
 App private keys, webhook secret, OAuth client secret, session signing key and
 Web Push private key belong in Worker secrets. This identity milestone does not
-persist provider tokens. Installation tokens will be short-lived and renewed as
-needed for tracking. The read-only public status endpoint returns no credentials,
+persist provider tokens. Installation tokens are short-lived and renewed within each complete check.
+One request-local App JWT authenticates both configured accounts during that
+check; it is not cached between scans. Installation tokens remain distinct. The read-only public status endpoint returns no credentials,
 user email, subscription endpoints, or private repository details. The owner ID
 and APP_ORIGIN are non-secret configuration. Query strings are redacted from
 platform logs/traces and invocation logs are disabled to avoid retaining OAuth
@@ -350,6 +351,11 @@ backoff. A notice is not marked sent before a push service accepts it. An ambigu
 network failure can duplicate delivery; use a stable notification tag per epoch
 to reduce duplicates. Expired subscriptions are removed. Do not promise exact
 once display on all devices.
+
+The scheduled CPU follow-up avoids validating/deriving push keys when no due
+delivery exists, after bounded stale-outbox cleanup. This is a work hint only;
+all authorization/lease/configuration guards remain mandatory for actual sends.
+See [cpu-profiling.md](cpu-profiling.md) for local measurements and their limits.
 
 ## Planned persistent data
 

@@ -71,7 +71,8 @@
 - [x] Deploy device setup and privately install validated server keys.
 - [x] Verify registration and actual Vivaldi receipt on Windows 11 (browser/PWA).
 - [x] Verify Android Vivaldi receipt in the notification shade; foreground banners differ.
-- [ ] Verify Linux and final cross-device background receipt.
+- [x] Verify Linux Mint/Firefox registration, test receipt and visible notification tap-to-open.
+- [ ] Complete remaining cross-device background/lock-screen acceptance.
 - [x] Implement standards-based Web Push and stable per-epoch notification tags.
 - [x] Implement bounded per-device idle retries and expiry/renewal fencing.
 - [x] Implement canonical run-attempt links for completed activity, regardless of conclusion.
@@ -96,7 +97,10 @@
 - [ ] Verify the monitor's own CI/CD runs do not create notification loops.
 - [x] Enable deployment and verify the first GitHub production release.
 - [x] Measure hosted D1 storage/24-hour rows and compare with current pricing.
-- [ ] Verify Worker CPU/request/account usage and representative steady-state cost.
+- [x] Record owner Worker CPU percentiles, zero observed errors and account Free request/event usage.
+- [x] Profile local workerd quiet scans and remove demonstrated redundant cryptography with security regressions.
+- [ ] Verify deployed-version scheduled CPU against the Free limit; local call reductions are not an edge CPU guarantee.
+- [ ] Confirm representative steady-state usage after normal operation.
 - [ ] Optional Codex chat links only after a reliable association is available.
 
 The foundation alone is not an acceptance test for the complete product.

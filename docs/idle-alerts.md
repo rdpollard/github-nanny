@@ -57,6 +57,8 @@ full scan. The scan repeats complete installation discovery and public metadata
 checks before/after all unfinished-run queries. A failed, truncated, stale,
 conflicting or busy observation cannot dispatch an alert.
 
+Before importing push keys, a bounded cleanup and due-work query let quiet
+scans return without cryptography. This query never authorizes delivery.
 The dispatcher checks prepared scope/configuration, current epoch, enabled
 monitoring/alerts, fresh complete-check time, no outstanding scan/error, current
 recipient revision and expiry, and a canonical saved-public-repository run link.
