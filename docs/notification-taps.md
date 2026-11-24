@@ -8,19 +8,30 @@ retesting is in progress.
 
 ## Owner results after tap-v2 deployment
 
-- Android: Settings diagnostic timed out. The new handler's activation/message
+- Vivaldi on Android: Settings diagnostic timed out. The new handler's activation/message
   response is not confirmed on this device.
-- Windows: two tests both reported handler tap-v2 active with no notification
+- Vivaldi on Windows: two tests both reported handler tap-v2 active with no notification
   tap recorded. No open/focus rejection has been captured. This does not rule
   out a different browser profile/registration receiving the notification,
   storage limitations, or a failure before the diagnostic record is written.
 
 The hosted service-worker script has JavaScript content type and
 `Cache-Control: public, max-age=0, must-revalidate`; the hosted tap-v2 code is
-current. No new navigation patch is justified by these results yet. The next
-comparison is a separate Windows Edge/Chrome enrollment and test notification,
-with its tap diagnostic inspected afterward. This tests the same production
-application against a different browser's OS notification integration.
+current. The owner then completed separate comparison enrollments:
+
+- Edge on Windows 11: test notification tap visibly opened the Nanny dashboard
+  at its canonical root URL. Diagnostic reported handler tap-v2 and opened.
+- Chrome on Android 17: test arrived quietly in the notification shade without
+  a banner; tapping visibly opened Nanny as desired. Diagnostic reported tap-v2
+  and received (opening promise had not completed at inspection time). That
+  intermediate result does not override confirmed visible opening, and its
+  eventual transition was not checked.
+
+These verify test delivery and tap-to-open on Edge/Windows and Chrome/Android.
+Vivaldi remains a compatibility investigation on both platforms; the comparison
+alone does not establish a particular Vivaldi defect or its cause. Automatic idle
+receipt is verified on Vivaldi, while automatic idle run-link navigation on the
+newly enrolled Edge/Chrome devices remains a separate acceptance check.
 
 An older Vivaldi forum thread reports similar symptoms, with a fix being tested
 in February 2023. It does not establish a defect in the current installed versions:

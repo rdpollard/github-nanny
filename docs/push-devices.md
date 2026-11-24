@@ -31,8 +31,11 @@ The owner verified automatic idle notifications on both Windows/Android Vivaldi
 devices after PR #17 CI. Tapping opened nothing on either device. The source
 click handler now navigates inside Nanny's scope and shows an ordinary **View
 run on GitHub** link, rather than directly launching GitHub from the worker.
-Deployment and actual-device click retesting remain pending; registrations and
-push keys stay intact.
+The tap-v2 follow-up is deployed. Test-notification taps visibly open Nanny in
+Edge on Windows 11 and Chrome on Android 17. Chrome's test arrived in the shade
+without a banner; that is successful receipt. Vivaldi click-through remains
+unresolved. See [notification-taps.md](notification-taps.md) for per-browser
+results and diagnostic interpretation. Registrations and push keys stay intact.
 
 ## Server setup after main CI
 
