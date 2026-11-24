@@ -76,9 +76,10 @@ read-only repository permissions and serialized production deployment. Its job
 checks credentials, runs `npm ci`, `npm run check`, browser smoke and a dry run,
 applies hosted D1 migrations, uploads Worker/assets and checks public health.
 Manual dispatch is restricted to main. It does not deploy PR code. The repository variable
-`CLOUDFLARE_DEPLOY_ENABLED` remains disabled.
+`CLOUDFLARE_DEPLOY_ENABLED` is owner-enabled; the first manual main deployment
+passed in run `45475925420`.
 
-Before enabling automatic deployment, the owner must install a separate durable
+For a new installation or credential replacement, install a separate durable
 Cloudflare CI token and account ID in the repository's Actions secrets:
 
 - `CLOUDFLARE_API_TOKEN`: permission to deploy the existing Worker and execute

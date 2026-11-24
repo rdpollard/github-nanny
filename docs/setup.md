@@ -102,7 +102,7 @@ is gated on repository variable `CLOUDFLARE_DEPLOY_ENABLED` being exactly `true`
 It independently runs full checks, browser smoke and a dry run before
 migrations/upload, then verifies public health. Manual dispatch is restricted
 to main. It does not cancel a
-production deployment already in progress. The gate is currently disabled.
+production deployment already in progress. The gate is now owner-enabled; the first manual GitHub deployment passed.
 
 Automatic deployment needs separate Actions secrets `CLOUDFLARE_API_TOKEN` and
 `CLOUDFLARE_ACCOUNT_ID`. The token must authorize deployment of the existing

@@ -88,7 +88,7 @@
 ## 5. Launch
 
 - [x] Prepare main-only gated deployment with full checks, browser smoke, credential preflight and public health verification.
-- [ ] Owner installs scoped CI credentials, enables gate and verifies first GitHub deployment.
+- [x] Owner installs scoped CI credentials, enables gate and verifies first GitHub deployment.
 
 - [x] Configure Cloudflare, production GitHub App and production secrets.
 - [ ] Exercise setup/disconnect and live busy-to-idle notifications end to end.

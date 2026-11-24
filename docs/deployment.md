@@ -1,5 +1,25 @@
 # Deployment status
 
+## First GitHub Actions production deployment
+
+The owner created an account API token with Individual Workers Editor scoped to
+`github-nanny` plus D1 Write for its account, saved both Actions secrets, enabled
+`CLOUDFLARE_DEPLOY_ENABLED=true`, and dispatched Deploy on main. Run
+`45475925420` succeeded for `c10476eb279569f7ed0ee42ace72d5ad85c28afd`.
+All credential, unit/runtime (48/61), browser, dry-run, migration, upload and
+public health steps passed. No migrations were pending. Published Cloudflare
+version: `b2ca37a5-3d62-40c6-a3b8-bf4e0b41ca16`; the minute schedule remains active.
+
+Independent HTTPS probes confirmed health/status 200, tap-v2/assets present and
+unsigned push/alert administration 401. Read-only D1 confirmed monitoring and
+alerts enabled, four device registrations and the activation binding preserved.
+The first observation caught a concurrent-activity conflict (zero failure backoff)
+and unknown status. The following complete 34-request scan cleared the error
+with zero failures; normal two-scan idle confirmation was then in progress.
+The source gate is enabled for future main pushes; this first verification used
+manual dispatch. Application secrets were not replaced or printed.
+
+
 ## Tap-v2 diagnostics deployment
 
 Main CI run `45461676255` passed for merge commit
