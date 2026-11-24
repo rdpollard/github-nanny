@@ -1,5 +1,25 @@
 # Deployment status
 
+## Scheduled cryptography optimization release
+
+PR #22 merged as `0037e0a1be0ad9df4a73a1a53cc87e03e43873c4`.
+Main CI `45487280331` and automatic Deploy `45487280335` passed all checks,
+including unit/runtime, browser smoke and deployment dry run. No migrations
+were pending. Cloudflare version:
+`bfbccd8f-e0c1-4ac8-8888-42baa2b7fc34`; the minute schedule remains active.
+
+Hosted health/status returned 200 and unsigned push/alert administration 401.
+Read-only hosted D1 confirmed monitoring and alerts enabled, five registered
+devices, the activation binding, no errors/failures, and a complete 34-request
+scan. Current activity was busy across the unchanged four-repository scope;
+deployment did not reset scope, devices or notification readiness.
+
+Local cryptography-call reductions are documented in cpu-profiling.md. Hosted
+CPU improvement and Free-limit compatibility remain unverified: inspect Metrics
+for this version only after a normal observation interval, rather than combining
+historical deployments or treating local samples as edge CPU.
+
+
 ## PWA icons automatic release
 
 PR #20 merged as `1cb06aa2304618eef6331d73d2f1be92871a3576`.
