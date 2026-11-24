@@ -13,7 +13,9 @@ cover all four without errors. Real signed workflow delivery is also verified.
 Encrypted owner-only device registration and a test-notification button are
 deployed with server keys configured. Windows and Android Vivaldi receipt is
 verified. Automatic idle alerts and per-device retries are deployed and
-owner-enabled; real automatic receipt and run-link navigation remain to be verified.
+owner-enabled. Automatic idle receipt is verified on both devices. A notification
+click fix now opens Nanny first with a GitHub run link; deployment and device
+retesting of that fix remain pending.
 
 - Responsive React dashboard, filters, compact mode and light/dark themes,
   adapted from GitHub Workflow Dashboard; explicit sample preview at `/?demo=1`.

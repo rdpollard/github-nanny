@@ -33,16 +33,23 @@ self.addEventListener('push', event => {
 });
 self.addEventListener('notificationclick', event => {
   event.notification.close();
+  // Keep the notification's first navigation inside the installed app's scope.
+  // The dashboard offers an ordinary GitHub link instead of asking the browser
+  // to launch another origin directly from a background service worker.
+  const target = new URL('/', self.location.origin);
+  const runUrl = safeRunUrl(event.notification.data?.runUrl);
+  if (runUrl) target.hash = new URLSearchParams({ 'idle-run': runUrl }).toString();
   event.waitUntil((async () => {
-    const runUrl = safeRunUrl(event.notification.data?.runUrl);
-    if (runUrl) return self.clients.openWindow(runUrl);
-    const target = new URL('/', self.location.origin).href;
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of windows) if (new URL(client.url).origin === self.location.origin) {
-      try { await client.navigate(target); return await client.focus(); }
+      try {
+        const navigated = await client.navigate(target.href);
+        if (navigated) return await navigated.focus();
+      }
       catch { /* A closing window can disappear between matchAll and focus. */ }
     }
-    return self.clients.openWindow(target);
+    const opened = await self.clients.openWindow(target.href);
+    if (opened) return opened.focus();
   })());
 });
 self.addEventListener('activate', event => {

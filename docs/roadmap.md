@@ -47,7 +47,7 @@
 - [x] Implement active-run API with scope/freshness and access failure handling.
 - [x] Deploy automatic checks, paused controls and the gated public status feed.
 - [x] Verify owner activation and the live idle dashboard across four repositories.
-- [ ] Verify a complete live automatic busy-to-idle transition.
+- [x] Verify a live automatic busy-to-idle alert on both Windows/Android devices.
 - [x] Confirm waiting/requested/pending block idle alongside queued/running.
 - [x] Bound MVP coverage to the four confirmed public repositories; outside-account fallback is not in scope.
 
@@ -77,7 +77,9 @@
 - [x] Implement canonical run-attempt links for completed activity, regardless of conclusion.
 - [x] Deploy automatic idle alerts with registrations preserved and activation off.
 - [x] Verify owner idle-alert activation in hosted storage.
-- [ ] Verify real automatic idle receipt and run-link navigation.
+- [x] Verify real automatic idle receipt on both owner devices.
+- [x] Implement app-first notification clicks and a validated GitHub run link.
+- [ ] Deploy and verify notification click-through on both owner devices.
 - [ ] Add final PNG/maskable/apple icons and verify install behavior.
 - [ ] Verify background push on the actual phone and Windows/Linux browsers.
 - [ ] iOS: Home Screen install, iOS 16.4+, explicit notification permission.

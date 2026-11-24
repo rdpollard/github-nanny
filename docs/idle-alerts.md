@@ -1,7 +1,8 @@
 # Automatic idle alerts
 
 This milestone connects confirmed global idle to encrypted per-device delivery.
-It is deployed and owner-enabled, pending real end-to-end receipt verification.
+It is deployed and owner-enabled. Actual automatic receipt is verified on
+Windows/Android Vivaldi; a click fix in source awaits deployment/device retesting.
 Existing registrations and push secrets were preserved;
 no device needs to grant permission again.
 
@@ -23,7 +24,9 @@ no device needs to grant permission again.
    Android may retain a notification in its shade without showing a heads-up
    banner while the app is open. A new activity epoch uses a new notification
    tag; retries reuse the same tag to suppress duplicate banners.
-5. Clicking the alert opens the relevant GitHub run attempt. The body states the
+5. Clicking the alert opens Nanny with a **View run on GitHub** link to the
+   relevant attempt. This same-origin first navigation replaces the direct
+   GitHub launch that opened nothing on both owner devices. The body states the
    time of the complete check; future GitHub activity can begin afterward.
    Browser/OS delivery is best effort, not proof that a device displayed it.
 
@@ -89,7 +92,10 @@ Bounded cleanup removes expired outbox rows and their delivery rows.
 
 Payloads contain only a version/kind, epoch, check timestamp and canonical public
 GitHub attempt URL. The service worker constructs fixed notification text and
-validates the run URL again before displaying/click navigation. Malformed data
+validates the run URL again before displaying/click navigation. Clicks navigate
+inside the app scope, carrying the validated link in a URL fragment; the
+dashboard validates it again and presents an ordinary GitHub link. This context
+never changes the live busy/idle decision or triggers an automatic redirect. Malformed data
 produces a neutral app notification. Explicit tests say they are tests and may
 renotify; idle retries do not. No notification or retry creates a GitHub run.
 
@@ -100,6 +106,15 @@ repeat quiet, multiple epochs, owner/origin enforcement, idempotent enable,
 retry/backoff and exhaustion, stale/mismatched scope/configuration, recipient
 snapshots, expired/replaced devices, late responses, competing dispatchers,
 post-encryption activity, pause, disconnect and failed scans. Service-worker
-tests cover stable tags and canonical run navigation. Browser smoke covers
-explicit enable/disable controls. Real automatic receipt, run-link clicks,
-background/lock-screen presentation and Linux receipt remain launch checks.
+tests cover stable tags, app opening/focus, disappearing windows and canonical
+run navigation. Browser smoke covers the landing link, fragment changes in an
+existing app, invalid targets and unknown current status, alongside explicit
+enable/disable controls. Automatic Windows/Android receipt is verified; actual
+click-through after the fix, background/lock-screen presentation and Linux
+receipt remain launch checks.
+
+Browser API reference: https://developer.mozilla.org/en-US/docs/Web/API/Clients/openWindow
+Cross-origin opening returns no WindowClient and cannot be focused by this
+worker; same-origin opening lets the handler focus the app. The precise Vivaldi
+failure has not been observed in a browser debugger, so device retesting is
+required rather than claiming the reference alone proves the cause.

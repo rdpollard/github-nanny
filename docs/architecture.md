@@ -21,8 +21,9 @@ dashboard showing confirmed idle across the four public repositories. A real
 signed completed-workflow event and its persisted terminal run/attempt are
 verified. Owner-only encrypted device registration and explicit test pushes are
 deployed with server keys installed and Windows/Android Vivaldi receipt verified.
-Automatic idle dispatch and retries are deployed and owner-enabled, pending
-real end-to-end receipt verification. See
+Automatic idle dispatch and retries are deployed and owner-enabled; real idle
+receipt is verified on Windows/Android Vivaldi. The notification click fix in
+source opens the app first with a run link, pending deployment/device retesting. See
 [idle-alerts.md](idle-alerts.md) and [reconciliation.md](reconciliation.md) for
 the runtime contracts.
 
@@ -339,7 +340,7 @@ and notice readiness and clearing obsolete outbox work before taking its token.
 
 The webhook ledger stores only latest-attempt IDs/status/timing and delivery
 IDs, not full payloads or a history view. Signing and ordering are runtime-tested;
-real GitHub delivery verification remains after deployment and secret setup.
+real signed GitHub delivery has also been verified in production.
 
 Explicit test pushes are implemented separately from idle decisions; see
 [push-devices.md](push-devices.md). They never enable outbox creation or claim

@@ -6,8 +6,10 @@ The public PWA is deployed at https://github-nanny.github-nanny.workers.dev/.
 Monitoring and idle alerts are owner-enabled for the four saved public
 repositories. Two registered Vivaldi devices are preserved. Test receipt is
 verified on Windows 11 and Android; Android foreground banner behavior differs
-from its notification-shade receipt. Actual automatic busy-to-idle receipt and
-run-link navigation are the next acceptance checks.
+from its notification-shade receipt. The owner verified automatic idle receipt
+on both devices after PR #17 CI. Tapping opened nothing on either device; the
+click fix in source opens Nanny first and presents a GitHub run link. Deployment
+and actual device click-through verification are pending.
 
 The saved scope is:
 
@@ -32,7 +34,8 @@ There is no polling workflow or separate engineering status watcher.
    allowed on Windows. After all four repositories become idle, confirm one
    **GitHub is idle** notification on each enrolled device. Test notifications
    have a different title and do not satisfy this check.
-3. Open the notification and confirm the GitHub run-attempt link is relevant.
+3. Open the notification, confirm Nanny opens, and use **View run on GitHub**
+   to confirm the run-attempt link is relevant.
    The body describes the time of the complete check, not a promise that no new
    work can begin afterward.
 4. Confirm continued quiet produces no additional idle reminder. A subsequent
@@ -92,7 +95,8 @@ See [setup.md](setup.md) for commands and
 
 ## Remaining launch checks
 
-- Actual automatic alerts and run-link navigation on the enrolled devices.
+- Retest Nanny opening and run-link navigation on both enrolled devices after
+  the notification click fix is deployed. Automatic alert receipt is verified.
 - Background/lock-screen behavior and a Linux browser's real push receipt.
 - Install/icon polish: final PNG, maskable and Apple icon assets. Existing
   Vivaldi Windows/Android browser and installed-PWA operation is already verified.

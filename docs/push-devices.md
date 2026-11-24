@@ -25,6 +25,15 @@ Automatic delivery is deployed and the owner has enabled it; see
 [idle-alerts.md](idle-alerts.md). A new installation still requires explicit
 activation.
 
+## Automatic alert receipt and click follow-up
+
+The owner verified automatic idle notifications on both Windows/Android Vivaldi
+devices after PR #17 CI. Tapping opened nothing on either device. The source
+click handler now navigates inside Nanny's scope and shows an ordinary **View
+run on GitHub** link, rather than directly launching GitHub from the worker.
+Deployment and actual-device click retesting remain pending; registrations and
+push keys stay intact.
+
 ## Server setup after main CI
 
 1. Apply migration `0006_push_devices.sql` before uploading the built Worker.

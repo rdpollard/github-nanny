@@ -21,8 +21,8 @@ npx wrangler d1 migrations apply DB --local --config wrangler.jsonc
 The production Worker `github-nanny`, workers.dev address and WNAM D1 database
 are already created. Migrations 0001–0007 are deployed. Real GitHub owner sign-in,
 saved public scope, signed webhooks and scheduled Actions checks are verified.
-The owner enabled idle alerts; actual automatic receipt is the remaining
-end-to-end check. No paid plan has been enabled.
+The owner enabled idle alerts and verified automatic receipt on both devices.
+Notification click-through is being corrected and still needs device retesting. No paid plan has been enabled.
 
 Non-secret identifiers, canonical APP_ORIGIN, owner ID, App slug/client ID and
 configured organization requirements are in `wrangler.jsonc`. The verified scope

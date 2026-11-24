@@ -103,6 +103,14 @@ silent with no pending notice/delivery. Real automatic receipt, run-link clicks
 and background/lock-screen behavior remain to be verified. See idle-alerts.md
 and release-checklist.md.
 
+## Automatic receipt follow-up
+
+After PR #17 CI, the owner confirmed automatic Vivaldi idle notifications on
+both Windows and Android. Neither notification opened a destination when tapped.
+The app-first click fix is in source with a dashboard run link, pending main CI,
+deployment and real-device retesting. This is separate from successful delivery;
+monitoring, subscriptions and push secrets do not need resetting.
+
 ## Signed webhook deployment
 
 After main CI passed, commit `1a616ef5bfc4fa460c899e2c0ae5e97a5cffa544`
