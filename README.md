@@ -12,8 +12,10 @@ dashboard showing confirmed idle across four repositories, and hosted checks
 cover all four without errors. Real signed workflow delivery is also verified.
 Encrypted owner-only device registration and a test-notification button are
 deployed with server keys configured. Windows and Android Vivaldi receipt is
-verified. Automatic idle alerts and per-device retries are implemented in the
-next source milestone and await CI, deployment and owner activation.
+verified. Automatic idle alerts and per-device retries are deployed and
+owner-enabled. Automatic idle receipt is verified on both devices. A notification
+click fix now opens Nanny first with a GitHub run link; deployment and device
+retesting of that fix remain pending.
 
 - Responsive React dashboard, filters, compact mode and light/dark themes,
   adapted from GitHub Workflow Dashboard; explicit sample preview at `/?demo=1`.
@@ -35,8 +37,9 @@ next source milestone and await CI, deployment and owner activation.
   deployment remains disabled until separately configured.
 
 See [automatic checks](docs/reconciliation.md) for activation and limits.
-Notification creation and delivery remain disabled in production. Deployment
-alone does not start GitHub API scans; the owner must activate them in settings.
+Monitoring and alerts are now owner-enabled in production. A first quiet
+period stays silent; notifications follow observed activity and confirmed idle.
+Deployment alone does not activate checks or alerts in a new installation.
 
 ## Local development
 
@@ -74,6 +77,7 @@ layout, unknown live status, service worker registration, and offline navigation
 - [Requirements](docs/requirements.md)
 - [Architecture and idle detection](docs/architecture.md)
 - [Milestones](docs/roadmap.md)
+- [Release verification and operations](docs/release-checklist.md)
 - [Cloudflare and GitHub setup](docs/setup.md)
 - [GitHub owner connection setup](docs/github-connection.md)
 - [GitHub webhook receiver and setup](docs/webhooks.md)

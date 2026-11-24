@@ -1,161 +1,129 @@
 # Setup and deployment
 
-## Local scaffold
+## Local development
 
-Install Node 24+, run `npm ci`, then `npm run dev`. The Cloudflare Vite plugin
-provides the API and frontend together. `npm run check` checks types, executes
-tests, and builds frontend/Worker outputs. No secrets are needed for local demo.
+Use Node 24+, run `npm ci`, then `npm run dev`. The Cloudflare Vite plugin
+provides the API and frontend together. `npm run check` validates generated
+types, type-checks, runs unit tests, builds and exercises real workerd/D1 tests.
+CI also runs browser smoke and a deployment dry run. No credentials are needed
+for the explicit sample preview at `/?demo=1`.
 
-## CI/CD
+For local owner integration, copy `.dev.vars.example` to an untracked `.dev.vars`
+and configure separate development credentials/state. Never use VITE_* or
+localStorage for server credentials. Apply the local schema before signing in:
 
-`ci.yml` runs on PRs and pushes to main with read-only repository permission.
-It uses the lockfile, executes unit/type/build and browser smoke checks, and
-performs a deployment dry run.
-`deploy.yml` runs on main pushes or manual dispatch, but only when the repository
-variable `CLOUDFLARE_DEPLOY_ENABLED` is exactly `true`. The deploy job independently
-runs checks before deploying. Until enabled, CI requires no host credentials.
+```sh
+npx wrangler d1 migrations apply DB --local --config wrangler.jsonc
+```
 
-Use one production deploy at a time. The workflow does not cancel a deployment
-already in progress. No privileged workflow runs on untrusted PR code.
+## Production resources and configuration
 
-## First Cloudflare setup (when ready)
+The production Worker `github-nanny`, workers.dev address and WNAM D1 database
+are already created. Migrations 0001–0007 are deployed. Real GitHub owner sign-in,
+saved public scope, signed webhooks and scheduled Actions checks are verified.
+The owner enabled idle alerts and verified automatic receipt on both devices.
+Notification click-through is being corrected and still needs device retesting. No paid plan has been enabled.
 
-### Wrangler sign-in from a remote workspace
+Non-secret identifiers, canonical APP_ORIGIN, owner ID, App slug/client ID and
+configured organization requirements are in `wrangler.jsonc`. The verified scope
+contains only the four public repositories listed in requirements.md. The 17
+accessible private repositories do not receive Actions queries or affect idle.
 
-Cloudflare MCP authentication and Wrangler authentication are separate. A
-desktop MCP connection is not required to build or deploy this project.
+Installed Worker secrets are:
 
-The pinned Wrangler version supports device authorization, which works without
-forwarding a localhost callback port:
+- `GITHUB_CLIENT_SECRET`
+- `GITHUB_APP_PRIVATE_KEY`
+- `SESSION_SECRET`
+- `GITHUB_WEBHOOK_SECRET`
+- `WEB_PUSH_PRIVATE_KEY`
+- `PUSH_STORAGE_SECRET`
+
+Keep their values out of chat, source, fixtures and logs. The App identity token
+is used once and discarded; request-local installation tokens are not persisted.
+Push subscription credentials are encrypted in D1. No additional generic token
+storage secret or legacy VAPID_PRIVATE_KEY variable is used.
+
+See [github-connection.md](github-connection.md), [webhooks.md](webhooks.md),
+[push-devices.md](push-devices.md) and [idle-alerts.md](idle-alerts.md) for setup,
+key formats and owner controls. Preserve existing secrets during ordinary
+releases. Do not rotate push keys when rotating the webhook secret.
+
+## Wrangler sign-in from a remote workspace
+
+Cloudflare MCP and Wrangler authentication are separate. The pinned Wrangler
+supports device authorization without forwarding a localhost callback:
 
 ```sh
 npx wrangler login --device --browser=false --scopes account:read user:read workers:write workers_scripts:write d1:write
 npx wrangler whoami
 ```
 
-Open the printed Cloudflare verification URL and enter the short-lived device
-code. Do not paste API tokens into chat or source files. Wrangler stores the
-resulting credentials outside the repository. When using a custom
-`XDG_CONFIG_HOME`, use the same value on subsequent Wrangler commands; it changes
-where credentials are stored. This development workspace uses a private
-temporary config directory, which is not a durable CI credential store.
+Open the displayed verification URL and enter its short-lived device code.
+Wrangler stores credentials outside the repository. This task uses a private
+temporary XDG_CONFIG_HOME directory; use the same value on later Wrangler
+commands. It is not a durable CI credential store. Select the existing account
+explicitly if multiple accounts are available.
 
-The selected scopes cover account discovery, Workers deployment and the planned
-D1 integration. Wrangler may warn about other omitted product scopes; only add
-them when the project needs those products. Device login adds refresh access
-automatically. Verify the account before deployment, and set
-`CLOUDFLARE_ACCOUNT_ID` explicitly when there is more than one account.
+## Manual release after checks
 
-### Automated GitHub deployments
-
-1. Create a Cloudflare account and use Workers Free initially. No domain purchase
-   is required; a workers.dev address is sufficient. Check current free limits.
-2. Find the account ID. Create a scoped API token permitting Worker deployment
-   for this account; add D1 permissions when migrations are introduced.
-3. In github-nanny repository settings, add Actions secret
-   `CLOUDFLARE_API_TOKEN` and secret `CLOUDFLARE_ACCOUNT_ID`.
-4. Set repository variable `CLOUDFLARE_DEPLOY_ENABLED=true` only when a public
-   deployment is intended. Run the deploy workflow or merge to main.
-5. Record the workers.dev URL. Monitor usage in Cloudflare before considering
-   a paid plan. Building this code does not itself create billable resources.
-
-The initial scaffold can be deployed for UI review, but will still report
-unknown and cannot send notifications. Owner sign-in code is implemented in
-`main` and deployed with its secrets, and real owner sign-in is verified. The App
-is installed; the deployed access check verified the personal inventory. The
-organization extension and the separate `stormbots` installation are verified.
-Live monitoring is not implemented.
-
-An interactive Wrangler login does not authenticate GitHub Actions. CI requires
-its own account-scoped Cloudflare API token. Prefer an account-owned token with
-Editor access limited to the existing `github-nanny` Worker; creating a new
-Worker requires product-level Admin. Use a separate provisioning token if
-resource creation is needed later. Bound D1 resources do not require additional
-permissions merely to deploy Worker code, but creating/querying databases does.
-Store the token directly in GitHub Actions secret `CLOUDFLARE_API_TOKEN`, never in
-chat or a commit. Do not copy the short-lived local OAuth access token into CI.
-
-Keep `CLOUDFLARE_DEPLOY_ENABLED` disabled until the token is installed and automatic
-public releases from main are intended. The foundation and owner sign-in code
-are merged into `main` and deployed manually. See deployment.md for the version
-and remaining owner activation step.
-
-## D1 sessions and migrations
-
-Database `github-nanny` is created in WNAM and bound as `DB` in source control.
-The first migration stores only owner session hashes and lifetime metadata.
-It is already applied to the new hosted database; the persistent-session Worker
-still needs CI/deployment. No paid plan was enabled.
-
-For local development with real owner sign-in, apply the local schema first:
+Apply hosted migrations before uploading the built Worker:
 
 ```sh
-npx wrangler d1 migrations apply DB --local --config wrangler.jsonc
-```
-
-Before deploying approved code, apply hosted migrations:
-
-```sh
+npm run build
 npx wrangler d1 migrations apply DB --remote --config wrangler.jsonc
+npx wrangler deploy
 ```
 
-`npm run deploy` builds, applies hosted migrations, then deploys. The gated
-Actions deployment also applies migrations after its checks and before upload.
-Its Cloudflare token now needs D1 edit access for migration queries as well as
-deployment access to the existing Worker. Keep automatic deployment disabled
-until those separate CI credentials are configured.
+The final command uses the Vite build's redirected Wrangler configuration,
+which supplies the generated asset directory. Selecting the source config for
+the upload bypasses that generated directory. `npm run deploy` performs the
+build/migration/upload sequence as well.
 
-After this update, legacy stateless cookies are rejected. Sign in once again;
-single-device logout revokes copied cookies, and **Sign out all devices** revokes
-all sessions for the owner. A database failure cannot authorize a request from
-the signed cookie alone. `npm run types` now includes Wrangler runtime types for
-D1; the generated file is marked as generated in Git and must not be hand-edited.
+Verify health, current assets, uncached status, owner-route protection, preserved
+scope/devices/secrets and alert readiness after a release. Record source SHA and
+Cloudflare version in deployment.md. Do not fabricate an owner session to bypass
+browser verification. Use the real signed-in owner settings for activation.
 
-## GitHub App setup (milestone 2)
+Scope saves/disconnects pause monitoring and alerts. Start checks, then enable
+idle alerts deliberately after fresh verification. Sign-out revokes a stored
+owner session; it does not remove device registrations or stop monitoring.
 
-App `gh-nanny` is registered and its public identifiers are configured. Follow
-[the connection guide](github-connection.md) for callback settings and secret
-installation. Keep webhooks inactive until ingestion is implemented. When that
-handler exists, subscribe to relevant Actions, installation, and repository
-events. The owner reports installing on all personal-account repositories, but
-personal access is verified. The required `stormbots` repository needs a separate
-organization installation and the organization support described in the
-connection guide. Other collaborator repositories still need explicit coverage.
+## GitHub CI/CD and engineering handoff
 
-The implementation provides an owner GitHub ID allowlist and owner-only
-session. GitHub sign-in does not require a custom password database. Its client
-secret and app private key must remain on the server. Generate a strong webhook
-secret, validate SHA-256 signatures, and store delivery IDs for idempotency.
+`ci.yml` runs on PRs and main pushes with read-only repository permissions. It
+uses the lockfile and runs all checks, browser smoke and a deployment dry run.
+The engineer shares one CI link after starting a run, then waits for the user's
+completion message. Do not install status watchers or poll engineering CI.
 
-Already installed as Worker Secrets: `GITHUB_APP_PRIVATE_KEY`,
-`GITHUB_CLIENT_SECRET`, and `SESSION_SECRET`. Future milestones will need the
-following using `wrangler secret put NAME` from a secure local terminal or
-Cloudflare's secrets interface, never source files or chat:
+`deploy.yml` runs on main pushes or manual dispatch. Its serialized deploy job
+is gated on repository variable `CLOUDFLARE_DEPLOY_ENABLED` being exactly `true`.
+It independently runs checks before migrations/upload and does not cancel a
+production deployment already in progress. The gate is currently disabled.
 
-- `GITHUB_WEBHOOK_SECRET`
-- `TOKEN_ENCRYPTION_KEY`
-- `VAPID_PRIVATE_KEY`
+Automatic deployment needs separate Actions secrets `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID`. The token must authorize deployment of the existing
+Worker and D1 migration queries, with resources scoped as narrowly as possible.
+An interactive local OAuth login does not authenticate GitHub Actions, and its
+short-lived credentials must not be copied into CI. The owner must install the
+CI credentials directly in GitHub because the current connector returned 403
+for Actions-secret administration. Enable the repository gate only when those
+credentials are installed and automatic public releases are intended.
 
-Public identifiers such as App ID, client ID, owner user ID, public VAPID key,
-and app origin will be documented alongside the integration that uses them.
-Do not add unused secrets to this scaffold.
+See [release-checklist.md](release-checklist.md) for activation, acceptance,
+recovery and the remaining owner steps. No gate or paid resource is enabled by
+editing these documents.
 
-D1 database creation, bindings, migrations, Web Push key
-generation, and subscription setup will be documented with their implementation.
-Separate development and production state/credentials so demo runs cannot notify
-production devices.
+## Usage and cost
 
-## Cost assumptions and references
+The current four-repository complete check normally uses 34 GitHub requests per
+minute, split across two installation limits. At most four outbound pushes can
+follow a scheduled check. Public dashboard refreshes read D1 and spend no GitHub
+requests. Larger scopes, pagination and actual run volume can change usage.
 
-Personal use, one account and a handful of devices. Repository count/run volume
-are still unknown. Free limits and GitHub API budgets must be measured; an
-estimated $0 host bill is not guaranteed. Workers paid starts at $5/month under
-the current published plan, plus usage beyond included allowances. No paid
-notification provider is required by standards-based Web Push.
+Measure Worker CPU, D1 operations/storage and installation rate limits in the
+existing accounts before selecting upgrades. Current pricing and limits:
 
 - https://developers.cloudflare.com/workers/platform/pricing/
 - https://developers.cloudflare.com/d1/platform/pricing/
 - https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/
-- https://developers.cloudflare.com/workers/wrangler/commands/general/#use-wrangler-login-without-a-local-callback-server
 - https://developers.cloudflare.com/workers/authorization/workers/
-- https://developer.apple.com/documentation/usernotifications/sending-web-push-notifications-in-web-apps-and-browsers

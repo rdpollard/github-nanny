@@ -8,7 +8,7 @@
 - [x] Unknown-status API until real integration exists.
 - [x] Idle-decision function and focused tests for partial scans and races.
 - [x] Web manifest/service worker/offline fallback; device checks remain below.
-- [x] GitHub Actions checks and deployment workflow disabled until configured.
+- [x] GitHub Actions checks and a production deployment workflow gated until configured.
 
 ## 2. GitHub connection and live dashboard
 
@@ -47,9 +47,9 @@
 - [x] Implement active-run API with scope/freshness and access failure handling.
 - [x] Deploy automatic checks, paused controls and the gated public status feed.
 - [x] Verify owner activation and the live idle dashboard across four repositories.
-- [ ] Verify a complete live automatic busy-to-idle transition.
+- [x] Verify a live automatic busy-to-idle alert on both Windows/Android devices.
 - [x] Confirm waiting/requested/pending block idle alongside queued/running.
-- [ ] Resolve any coverage fallback outside the configured accounts.
+- [x] Bound MVP coverage to the four confirmed public repositories; outside-account fallback is not in scope.
 
 ## 3. Confirmed global idle
 
@@ -59,10 +59,10 @@
 - [x] Activate automatic checks with the owner.
 - [x] Fix repeated unknown/idle transitions during continuously successful empty scans.
 - [x] Persist scan state atomically, stabilize two complete empty scans and reject stale revisions.
-- [x] Implement one atomic outbox entry per idle epoch; production creation remains disabled.
+- [x] Implement one atomic outbox/recipient snapshot per idle epoch; owner activation is verified.
 - [x] Add signed activity ingestion and invalidate in-flight scans on fresh activity.
-- [ ] Activate continuous monitoring/outbox readiness after real delivery verification.
-- [ ] Test duplicate/late events, pagination, restarts and loss of repository access.
+- [x] Activate continuous monitoring and idle-alert readiness after real test delivery verification.
+- [x] Regression-test duplicate/late events, pagination, restarts and access loss in workerd/D1.
 
 ## 4. Push and PWA readiness
 
@@ -75,14 +75,18 @@
 - [x] Implement standards-based Web Push and stable per-epoch notification tags.
 - [x] Implement bounded per-device idle retries and expiry/renewal fencing.
 - [x] Implement canonical run-attempt links for completed activity, regardless of conclusion.
-- [ ] Deploy and activate automatic idle alerts, then verify real end-to-end receipt.
+- [x] Deploy automatic idle alerts with registrations preserved and activation off.
+- [x] Verify owner idle-alert activation in hosted storage.
+- [x] Verify real automatic idle receipt on both owner devices.
+- [x] Implement app-first notification clicks and a validated GitHub run link.
+- [ ] Deploy and verify notification click-through on both owner devices.
 - [ ] Add final PNG/maskable/apple icons and verify install behavior.
 - [ ] Verify background push on the actual phone and Windows/Linux browsers.
 - [ ] iOS: Home Screen install, iOS 16.4+, explicit notification permission.
 
 ## 5. Launch
 
-- [ ] Configure Cloudflare, production GitHub App and production secrets.
+- [x] Configure Cloudflare, production GitHub App and production secrets.
 - [ ] Exercise setup/disconnect and live busy-to-idle notifications end to end.
 - [ ] Verify the monitor's own CI/CD runs do not create notification loops.
 - [ ] Measure expected use/cost, enable deployment and monitor first releases.

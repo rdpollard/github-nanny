@@ -79,14 +79,37 @@ check confirmed both devices' last tests were accepted by their push service.
 Windows and Android transport/display are verified; background and lock-screen
 presentation remain acceptance checks. See push-devices.md.
 
-## Automatic idle alert preparation
+## Automatic idle alert deployment
 
-The next source milestone adds migration 0007, explicit owner alert activation,
-transactional recipient snapshots, guarded per-device delivery/retries and safe
-run-link navigation. It awaits CI and deployment. Existing verified device
-registrations and secrets are preserved, and alerts remain off until the owner
-clicks Enable. No engineering CI watcher or Codex auto-resume is installed.
-See idle-alerts.md for budgets, activation and end-to-end checks.
+Main CI run `45281897321` passed for merge commit
+`3a63797481cfb05d5cf97fb7af3a4072b48314cc`. Migration
+`0007_idle_delivery.sql` applied successfully to hosted D1, then the built
+Worker/assets were deployed as Cloudflare version
+`75e791f4-9f10-435a-a239-9fea48555cf6`. Existing push secrets were reused and
+both registered devices were preserved with their initial revision zero.
+
+HTTPS probes verified the current homepage/settings bundle, idle-capable service
+worker, health, configured sign-in and uncached four-repository status with
+alertsEnabled=false. Unsigned GET/POST alert administration returned 401. No
+owner session was fabricated or alert activation performed by these probes.
+
+Hosted D1 confirmed checks enabled with no errors or backoff, notice_enabled=0,
+no activation binding, no pending notices and no delivery rows. Automatic
+GitHub deployment remains disabled; the minute schedule is preserved. The next
+step was owner activation. The owner subsequently enabled alerts; a read-only
+hosted query confirmed monitoring_enabled=1, notice_enabled=1, the activation
+binding present, two devices and no backend errors. Initial quiet remained
+silent with no pending notice/delivery. Real automatic receipt, run-link clicks
+and background/lock-screen behavior remain to be verified. See idle-alerts.md
+and release-checklist.md.
+
+## Automatic receipt follow-up
+
+After PR #17 CI, the owner confirmed automatic Vivaldi idle notifications on
+both Windows and Android. Neither notification opened a destination when tapped.
+The app-first click fix is in source with a dashboard run link, pending main CI,
+deployment and real-device retesting. This is separate from successful delivery;
+monitoring, subscriptions and push secrets do not need resetting.
 
 ## Signed webhook deployment
 

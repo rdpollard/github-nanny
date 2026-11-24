@@ -6,6 +6,7 @@ import { demoSnapshot } from './demo';
 import { StatusBadge } from './components/StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { Button } from './components/ui/button';
+import { notificationRunUrl } from './lib/notification-link';
 
 function readPreference(key: string): boolean {
   try { return localStorage.getItem(key) === 'true'; } catch { return false; }
@@ -13,12 +14,19 @@ function readPreference(key: string): boolean {
 
 export function App() {
   const demo = new URLSearchParams(location.search).get('demo') === '1';
+  const [alertRunUrl, setAlertRunUrl] = useState(() => notificationRunUrl(location.hash));
   const [snapshot, setSnapshot] = useState<DashboardSnapshot>(() => demo ? demoSnapshot() : unconnectedSnapshot());
   const [loading, setLoading] = useState(false);
   const [compact, setCompact] = useState(() => readPreference('nanny-compact'));
   const [dark, setDark] = useState(() => readPreference('nanny-dark'));
   const [filter, setFilter] = useState<'all' | 'running' | 'queued'>('all');
   const [offline, setOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const update = () => setAlertRunUrl(notificationRunUrl(location.hash));
+    window.addEventListener('hashchange', update);
+    return () => window.removeEventListener('hashchange', update);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
@@ -81,6 +89,11 @@ export function App() {
       </header>
 
       {demo && <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950 dark:bg-amber-950 dark:text-amber-100"><p><strong>Demo preview.</strong> These are sample runs, not your GitHub activity.</p><a className="underline" href="/">Return to live dashboard</a></div>}
+
+      {alertRunUrl && <section aria-label="Idle alert run" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-5">
+        <div><h2 className="font-semibold">From your idle alert</h2><p className="text-sm text-muted-foreground">View the run linked by the notification. Current activity is shown below.</p></div>
+        <Button variant="outline" asChild><a href={alertRunUrl} rel="noreferrer">View run on GitHub<ExternalLink aria-hidden="true" /></a></Button>
+      </section>}
 
       <section aria-live="polite" className="mb-6 rounded-xl border bg-card p-5 sm:p-6">
         <div className="flex items-center gap-3">

@@ -287,6 +287,31 @@ const path = require('node:path');
     await page.getByRole('link', { name: 'Live CI', exact: false }).waitFor();
     await page.getByText('main · Attempt 2', { exact: true }).waitFor();
     liveUnavailable = true;
+    // A notification opens same-origin context, with an ordinary GitHub link.
+    // URL context must not assert idle when the live check is unavailable.
+    const alertRunUrl = 'https://github.com/rdpollard/public-demo/actions/runs/23/attempts/2';
+    await page.goto(`${origin}/#${new URLSearchParams({ 'idle-run': alertRunUrl })}`);
+    await page.getByRole('heading', { name: 'From your idle alert' }).waitFor();
+    const alertLink = page.getByRole('link', { name: 'View run on GitHub', exact: false });
+    assert.equal(await alertLink.getAttribute('href'), alertRunUrl);
+    await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+    await page.getByRole('heading', { name: 'Status unavailable' }).waitFor();
+    assert.equal(await page.getByRole('heading', { name: 'GitHub is idle', exact: true }).count(), 0);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    // Clicking the ordinary link uses a real page navigation, not a SW popup.
+    await page.route(alertRunUrl, route => route.fulfill({ contentType: 'text/html', body: '<h1>GitHub attempt fixture</h1>' }));
+    await alertLink.click();
+    await page.getByRole('heading', { name: 'GitHub attempt fixture' }).waitFor();
+    assert.equal(page.url(), alertRunUrl);
+    await page.unroute(alertRunUrl);
+    await page.goto(`${origin}/#${new URLSearchParams({ 'idle-run': 'https://evil.example/' })}`);
+    await page.getByRole('heading', { name: 'Status unavailable' }).waitFor();
+    assert.equal(await page.getByRole('link', { name: 'View run on GitHub', exact: false }).count(), 0);
+    // Existing app windows may receive a fragment navigation without reloading.
+    await page.evaluate(url => { location.hash = new URLSearchParams({ 'idle-run': url }).toString(); }, alertRunUrl);
+    await page.getByRole('heading', { name: 'From your idle alert' }).waitFor();
+    await page.evaluate(() => { location.hash = ''; });
+    await page.getByRole('heading', { name: 'From your idle alert' }).waitFor({ state: 'hidden' });
     await page.getByRole('button', { name: 'Refresh', exact: true }).click();
     await page.getByRole('heading', { name: 'Status unavailable' }).waitFor();
     assert.equal(await page.getByRole('link', { name: 'Live CI', exact: false }).count(), 0);
