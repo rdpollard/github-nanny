@@ -1,5 +1,26 @@
 # Deployment status
 
+## PWA icons automatic release
+
+PR #20 merged as `1cb06aa2304618eef6331d73d2f1be92871a3576`.
+Main CI `45477896720` and push-triggered Deploy `45477896731` both passed,
+including manifest/icon browser verification. No migrations were pending.
+Cloudflare version: `a02d1bce-77a3-4099-a6ab-40dbf24e1488`.
+
+Hosted checks matched all four served PNGs byte-for-byte against committed
+assets and verified dimensions, unchanged manifest identity/start/scope,
+maskable entry, Apple link and PNG notification icon. Health/status returned
+200, owner push/alert routes rejected unsigned requests with 401. Public status
+reported four repositories, confirmed idle and alerts enabled. Read-only D1
+confirmed monitoring/alerts enabled, four registrations, the activation binding,
+no errors and no backoff failures. The minute schedule remains active.
+
+This also verifies an automatic main-push release using the configured CI token.
+Real launcher/install appearance, Linux desktop receipt/taps, automatic run-link
+navigation on Edge/Chrome and Worker CPU/account usage remain owner checks;
+asset verification and headless smoke do not establish those results.
+
+
 ## First GitHub Actions production deployment
 
 The owner created an account API token with Individual Workers Editor scoped to
