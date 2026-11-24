@@ -41,22 +41,44 @@ invocation. Network wait time is not CPU time: a scan lasting seconds does not
 establish its CPU cost. The Paid plan starts at $5/account/month; do not upgrade
 without actual evidence and owner authorization.
 
-## Remaining account-dashboard check
+## Owner dashboard measurements — November 24, 2026
 
-The available Wrangler D1 metadata supplied the measurements above. Current
-Worker invocation totals, CPU distributions, CPU-limit errors, account-wide
-consumption and the billing page were not retrieved, so a complete $0 hosting
-conclusion is not yet verified.
+The owner supplied production and account screenshots:
 
-In Cloudflare, open Workers & Pages → github-nanny → Metrics/Observability and
-check a representative day: requests, CPU time (including scheduled checks),
-errors/exceeded-resource outcomes, and account usage. Also review D1 writes over
-several ordinary days; writes have less headroom than reads in this snapshot.
-Do not infer scheduled CPU behavior solely from HTTP request metrics. Share
-aggregate usage figures only, not token or subscription values. Reconsider cost
-only if measured limits, errors or scope growth call for it.
+| View/window | Measurement |
+| --- | --- |
+| Worker overview, last 24 hours | About 2.18k invocations; 0 errors |
+| CPU detail, last 24 hours, all deployed versions | P50 35.84 ms; P90 61.39 ms; P99 73.73 ms; P999 74.11 ms |
+| Account usage, Today | 1,695 / 100,000 requests (about 1.7%) |
+| Account observability, Today | 11 / 200,000 events |
+
+The account allowances correspond to Workers Free. The Today and last-24-hour
+views are different windows and the overview counters are rounded. The screenshot
+was not a complete billing/invoice review. CPU percentiles are per invocation,
+not total billable CPU or an average; this view includes historical deployments
+and does not isolate scheduled invocations. The current-version CPU tail cannot
+be derived from this aggregate screenshot.
+
+The request, observability and measured D1 volumes do not justify upgrading.
+Recommend retaining the current free plan while checking CPU compatibility.
+No upgrade or paid resource has been authorized or enabled by this review.
+
+## CPU follow-up
+
+Cloudflare documents a 10 ms Free CPU limit for HTTP and Cron invocations, with
+some isolate flexibility for occasional overruns. The observed aggregate CPU
+percentiles exceed that documented budget, despite zero observed errors. Do not
+interpret absence of errors as a guaranteed CPU allowance or claim the workload
+is indefinitely safe on Free. Current-version scheduled CPU profiling/measurement
+is the remaining engineering follow-up; optimize demonstrated hot paths before
+considering a paid plan. Any subscription change still requires owner approval.
+
+Requests and D1 writes should also be assessed over ordinary days as the scope
+or number of open dashboards grows. No recurring engineering CI status watcher
+or new account automation is installed by this review.
 
 ## Sources checked November 24, 2026
 
 - https://developers.cloudflare.com/d1/platform/pricing/
 - https://developers.cloudflare.com/workers/platform/pricing/
+- https://developers.cloudflare.com/workers/platform/limits/#cpu-time
