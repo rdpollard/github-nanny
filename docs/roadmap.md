@@ -71,7 +71,8 @@
 - [x] Deploy device setup and privately install validated server keys.
 - [x] Verify registration and actual Vivaldi receipt on Windows 11 (browser/PWA).
 - [x] Verify Android Vivaldi receipt in the notification shade; foreground banners differ.
-- [ ] Verify Linux and final cross-device background receipt.
+- [x] Verify Linux Mint/Firefox registration, test receipt and visible notification tap-to-open.
+- [ ] Complete remaining cross-device background/lock-screen acceptance.
 - [x] Implement standards-based Web Push and stable per-epoch notification tags.
 - [x] Implement bounded per-device idle retries and expiry/renewal fencing.
 - [x] Implement canonical run-attempt links for completed activity, regardless of conclusion.

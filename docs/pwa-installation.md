@@ -32,7 +32,10 @@ asset/manifest verification, not a real OS installation or notification test.
 
 The icon release is deployed as Cloudflare version
 `a02d1bce-77a3-4099-a6ab-40dbf24e1488`. Hosted assets match the committed PNGs;
-actual refreshed launcher/install appearance and Linux notifications are pending.
+actual refreshed launcher/install appearance remains pending. Linux notification
+registration, test receipt and visible tap-to-open are owner-verified in Firefox
+on Linux Mint. The owner reported the latest release of each; exact version
+numbers, desktop environment and installed-app status were not supplied.
 
 - Windows: install from Edge's app menu, launch from the installed shortcut,
   and check the icon/title and standalone window. Existing Edge test receipt and
@@ -53,8 +56,10 @@ actual refreshed launcher/install appearance and Linux notifications are pending
   and its dashboard **View run on GitHub** link. All monitored repositories must
   finish; first quiet and continued quiet do not send reminders.
 
-Linux OS notification permission, Do Not Disturb and desktop notification-daemon
-behavior need a real device check. A headless CI browser does not establish them.
+The real Linux Mint/Firefox result verifies notification delivery and tapping
+for that setup. Other Linux desktops/browser combinations and specific locked
+or background states are not implied by it. A headless CI browser does not
+establish OS notification behavior.
 Vivaldi-specific engineering was closed at the owner's request after Edge and
 Chrome passed; browser privacy adjustments remain owner-managed. iOS testing is
 optional and has not been performed.
