@@ -16,6 +16,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: npm ci --prefix tools/wait-prototype
+      - run: npm test --prefix tools/wait-prototype
       - run: npx playwright-core install --with-deps chromium
       - run: npm run test:browser
       - run: npx wrangler deploy --dry-run

@@ -1,0 +1,18 @@
+{
+  "name": "nanny-synthetic-wait-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test prototype.test.mjs",
+    "test:long": "node exercise.mjs --long"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
+  }
+}
