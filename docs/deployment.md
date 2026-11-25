@@ -1,5 +1,18 @@
 # Deployment status
 
+## Compact mobile dashboard release
+
+PR #25 merged as `c0e66a0b55f362a9d1e3fb040a8526d893ef2163`, closing
+issues #23 and #24. Main CI `45561025416` and automatic Deploy `45561025334`
+passed, including browser checks, migrations, upload and public health verification.
+Cloudflare version: `e6bc58c6-ede3-4157-a1d3-ebff5529c207`.
+
+A fresh hosted Chromium check at 390 × 844 confirmed HTTP 200, three equal
+114 × 94-pixel filter buttons in one row, no filter SVGs, no tagline and no
+horizontal overflow. The Cloud browser's certificate trust required the test
+context to ignore HTTPS certificate errors; this check does not validate TLS.
+No monitoring or notification configuration was changed by this frontend release.
+
 ## Scheduled cryptography optimization release
 
 PR #22 merged as `0037e0a1be0ad9df4a73a1a53cc87e03e43873c4`.
