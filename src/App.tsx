@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Activity, Bell, CheckCircle, Clock, ExternalLink, GitBranch, GitFork, Loader, Moon, RefreshCw, Sun, ZoomIn, ZoomOut } from 'lucide-react';
+import { Activity, Bell, CheckCircle, Clock, ExternalLink, GitBranch, GitFork, Moon, RefreshCw, Sun, ZoomIn, ZoomOut } from 'lucide-react';
 import type { DashboardSnapshot } from '../shared/contracts';
 import { unconnectedSnapshot } from '../shared/contracts';
 import { demoSnapshot } from './demo';
@@ -74,13 +74,13 @@ export function App() {
   const phase = offline ? 'unknown' : snapshot.phase;
 
   return (
-    <main className={`mx-auto max-w-6xl ${compact ? 'p-4' : 'p-4 sm:p-8'}`}>
+    <main className={`mx-auto max-w-6xl [overflow-wrap:anywhere] ${compact ? 'p-4' : 'p-4 sm:p-8'}`}>
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+        <div className="flex max-w-full min-w-0 flex-wrap items-center gap-3">
           <div className="rounded-xl bg-slate-900 p-3 text-white dark:bg-slate-700"><GitFork aria-hidden="true" className="size-6" /></div>
-          <div><h1 className="text-xl font-bold sm:text-2xl">GitHub Nanny</h1><p className="text-sm text-muted-foreground">A little less checking. A little more doing.</p></div>
+          <h1 className="text-xl font-bold sm:text-2xl">GitHub Nanny</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex max-w-full flex-wrap items-center gap-2">
           <Button variant="ghost" size="icon" aria-label={compact ? 'Expand layout' : 'Compact layout'} aria-pressed={compact} onClick={() => setCompact(!compact)}>{compact ? <ZoomOut /> : <ZoomIn />}</Button>
           <Button variant="ghost" size="icon" aria-label={dark ? 'Use light theme' : 'Use dark theme'} onClick={() => setDark(!dark)}>{dark ? <Sun /> : <Moon />}</Button>
           <Button variant="outline" onClick={() => { void refresh(); }} disabled={loading || demo}><RefreshCw aria-hidden="true" className={loading ? 'motion-safe:animate-spin' : ''} />Refresh</Button>
@@ -98,22 +98,22 @@ export function App() {
       <section aria-live="polite" className="mb-6 rounded-xl border bg-card p-5 sm:p-6">
         <div className="flex items-center gap-3">
           {phase === 'busy' ? <Activity aria-hidden="true" className="size-7 text-sky-600" /> : phase === 'idle' ? <CheckCircle aria-hidden="true" className="size-7 text-emerald-600" /> : <Clock aria-hidden="true" className="size-7 text-slate-500" />}
-          <div><h2 className="text-xl font-bold">{phase === 'busy' ? 'GitHub is busy' : phase === 'idle' ? 'GitHub is idle' : 'Status unavailable'}</h2>
+          <div className="min-w-0"><h2 className="text-xl font-bold">{phase === 'busy' ? 'GitHub is busy' : phase === 'idle' ? 'GitHub is idle' : 'Status unavailable'}</h2>
             <p className="text-sm text-muted-foreground">{offline ? 'You are offline. Connect to check current activity.' : snapshot.message ?? (phase === 'busy' ? 'We’re keeping an eye on every monitored run.' : 'All monitored Actions have finished.')}</p>
           </div>
         </div>
         {!snapshot.connected && !demo && <a href="/?demo=1" className="mt-4 inline-block text-sm font-medium text-sky-700 underline dark:text-sky-400">Preview the dashboard with sample data</a>}
       </section>
 
-      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Filter active runs">
+      <div className="run-filters mb-8 grid gap-2 sm:gap-3" role="group" aria-label="Filter active runs">
         {([
-          { key: 'all', label: 'Active runs', count: currentRuns.length, color: 'bg-slate-700', Icon: Activity },
-          { key: 'running', label: 'Running', count: running, color: 'bg-sky-600', Icon: Loader },
-          { key: 'queued', label: 'Queued / waiting', count: waiting, color: 'bg-orange-600', Icon: Clock },
-        ] as const).map(({ key, label, count, color, Icon }) => (
-          <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)} className={`flex items-center justify-between rounded-xl border-2 p-5 text-left text-white shadow-sm transition ${color} ${filter === key ? 'border-slate-950 dark:border-white' : 'border-transparent'}`}>
-            <div><p className="text-sm font-medium">{label}</p><p className="mt-1 text-3xl font-bold">{snapshot.connected && phase !== 'unknown' ? count : '—'}</p></div>
-            <Icon aria-hidden="true" className="size-7 opacity-80" />
+          { key: 'all', label: 'Active runs', count: currentRuns.length, color: 'bg-slate-700' },
+          { key: 'running', label: 'Running', count: running, color: 'bg-sky-700' },
+          { key: 'queued', label: 'Queued / waiting', count: waiting, color: 'bg-orange-700' },
+        ] as const).map(({ key, label, count, color }) => (
+          <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)} className={`flex min-h-11 min-w-0 flex-col items-stretch rounded-xl border-2 p-3 text-left text-white shadow-sm transition sm:p-5 ${color} ${filter === key ? 'border-slate-950 dark:border-white' : 'border-transparent'}`}>
+            <p className="min-h-[2lh] text-xs font-semibold sm:min-h-0 sm:text-sm">{label}</p>
+            <p className="mt-1 text-2xl leading-tight font-bold tabular-nums sm:text-3xl">{snapshot.connected && phase !== 'unknown' ? count : '—'}</p>
           </button>
         ))}
       </div>

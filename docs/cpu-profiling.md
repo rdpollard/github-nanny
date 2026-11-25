@@ -81,7 +81,8 @@ Wrangler connection returned unavailable, so no live CPU value was captured.
 It did not change runtime settings, enable invocation logs/traces, retain raw
 events or create a recurring watcher. No additional credentials were requested.
 
-After this change deploys, select the new version in Cloudflare Metrics and
+This change is deployed as `bfbccd8f-e0c1-4ac8-8888-42baa2b7fc34` after
+successful main CI and automatic deployment. Select that version in Cloudflare Metrics and
 inspect scheduled CPU/error outcomes over normal operation. Until then, meeting
 the Free 10 ms budget is unverified. Retain the current plan; do not infer that
 zero historical errors grant a larger limit or authorize an upgrade.

@@ -103,6 +103,13 @@
 - [ ] Confirm representative steady-state usage after normal operation.
 - [ ] Optional Codex chat links only after a reliable association is available.
 
+## 6. Dashboard refinements
+
+- [x] Implement #23: compact mobile run filters without decorative icons, with enlarged-text reflow.
+- [x] Implement #24: remove the header tagline in live and demo views.
+- [x] Validate narrow layouts, keyboard filtering, counts, contrast and enlarged text; [before/after evidence](mobile-layout.md).
+- [ ] Complete PR CI and production deployment for #23 and #24.
+
 The foundation alone is not an acceptance test for the complete product.
 
 ## Engineering CI handoff
