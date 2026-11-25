@@ -40,7 +40,7 @@
       statuses, with pagination, scope/visibility checks and per-run attempts.
 - [x] Deploy and verify an empty manual Actions check across the four real public repositories.
 - [x] Verify a live running organization workflow and persisted busy/activity state.
-- [ ] Verify navigation through a real run link on the owner's device.
+- [x] Owner verified navigation through real GitHub run links.
 - [x] Implement signature-verified webhooks, deduplication and per-attempt event ordering.
 - [x] Persist scan and event run IDs/attempts; test late completions and reruns.
 - [x] Deploy receiver, configure secret/subscriptions and verify a real completed workflow delivery.
@@ -94,13 +94,13 @@
 
 - [x] Configure Cloudflare, production GitHub App and production secrets.
 - [ ] Exercise setup/disconnect and live busy-to-idle notifications end to end.
-- [ ] Verify the monitor's own CI/CD runs do not create notification loops.
+- [x] Owner confirmed no unwanted CI/CD notification loops; notifications for Nanny's own CI/CD are desired.
 - [x] Enable deployment and verify the first GitHub production release.
 - [x] Measure hosted D1 storage/24-hour rows and compare with current pricing.
 - [x] Record owner Worker CPU percentiles, zero observed errors and account Free request/event usage.
 - [x] Profile local workerd quiet scans and remove demonstrated redundant cryptography with security regressions.
-- [ ] Verify deployed-version scheduled CPU against the Free limit; local call reductions are not an edge CPU guarantee.
-- [ ] Confirm representative steady-state usage after normal operation.
+- [x] Owner confirmed and accepted deployed Worker CPU within Cloudflare Free limits; local profiling alone was not the acceptance evidence.
+- [x] Owner confirmed and accepted normal usage within Cloudflare Free limits.
 - [ ] Optional Codex chat links only after a reliable association is available.
 
 ## 6. Dashboard refinements
@@ -111,6 +111,17 @@
 - [x] Complete PR #25 CI and production deployment for #23 and #24; verify the hosted mobile layout.
 
 The foundation alone is not an acceptance test for the complete product.
+
+## 7. Codex waits for Nanny — specified, not enabled
+
+- [x] Write the [full integration specification](codex-wait-spec.md) and create [milestone 1](https://github.com/rdpollard/github-nanny/milestone/1), issues #26–#32.
+- [ ] Pass subscription/client feasibility and manual-interruption gate (#26).
+- [ ] Implement correlated wait tickets, owner grants, bounded tools and agent workflow (#27–#30).
+- [ ] Verify security, races, client behavior and added Free-plan load (#31).
+- [ ] Dark-deploy, complete owner UAT and explicitly opt in (#32).
+
+Manual “done” and other steering always remain acceptable. Automation should
+keep work moving while the owner is unavailable; it must not block manual handoff.
 
 ## Engineering CI handoff
 

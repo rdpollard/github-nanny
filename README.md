@@ -38,6 +38,8 @@ accepted these results and closed further Vivaldi-specific work; see
   deployment is owner-enabled and verified from GitHub Actions.
 
 See [automatic checks](docs/reconciliation.md) for activation and limits.
+The proposed [Codex wait-tool integration](docs/codex-wait-spec.md) is specified
+and tracked in milestone 1; it is not enabled. Manual handoff remains available.
 Monitoring and alerts are now owner-enabled in production. A first quiet
 period stays silent; notifications follow observed activity and confirmed idle.
 Deployment alone does not activate checks or alerts in a new installation.
