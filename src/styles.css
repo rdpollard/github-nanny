@@ -22,3 +22,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 button { cursor: pointer; }
 button:disabled { cursor: default; }
 button:focus-visible, a:focus-visible { outline: 3px solid #0284c7; outline-offset: 4px; }
+
+/* Three columns on ordinary mobile screens; rem-based minimums let large text
+   reflow to fewer columns instead of clipping labels or narrowing tap targets. */
+.run-filters { grid-template-columns: repeat(auto-fit, minmax(min(100%, 5.25rem), 1fr)); }
