@@ -115,7 +115,8 @@ The foundation alone is not an acceptance test for the complete product.
 ## 7. Codex waits for Nanny — specified, not enabled
 
 - [x] Write the [full integration specification](codex-wait-spec.md) and create [milestone 1](https://github.com/rdpollard/github-nanny/milestone/1), issues #26–#32.
-- [ ] Pass subscription/client feasibility and manual-interruption gate (#26).
+- [x] Implement an isolated [synthetic MCP prototype](../tools/wait-prototype/README.md) for #26.
+- [ ] Pass subscription/client feasibility and manual-interruption gate (#26); [evidence report](codex-wait-feasibility.md) records untested clients.
 - [ ] Implement correlated wait tickets, owner grants, bounded tools and agent workflow (#27–#30).
 - [ ] Verify security, races, client behavior and added Free-plan load (#31).
 - [ ] Dark-deploy, complete owner UAT and explicitly opt in (#32).

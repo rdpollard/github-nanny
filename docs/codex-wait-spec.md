@@ -1,8 +1,9 @@
 # Codex waits for Nanny — specification
 
-Status: proposed implementation, not enabled. Version 1. Owner requested design
-and tracking only. This document does not authorize enabling automated engineering
-continuation or replacing the current manual CI handoff.
+Status: implementation started with issue #26's isolated feasibility prototype;
+production integration not enabled. Version 1. Owner authorized implementation.
+This document does not authorize enabling automated engineering continuation or
+replacing the current manual CI handoff before the specified gate and owner UAT.
 
 ## 1. Goal and boundaries
 
